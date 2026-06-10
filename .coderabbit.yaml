@@ -1,0 +1,167 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: "ko-KR"
+early_access: true
+
+tone_instructions: >
+  한국어로 정중하고 협업적인 톤의 코드 리뷰를 제공합니다.
+  nuro는 Spring Boot 3.5 / JPA 기반의 AI 피부 진단 백엔드입니다.
+  비전 LLM(Spring AI) 연동, 민감정보(API 키·사용자 이미지) 보호, JPA 정합성·성능 개선에 집중합니다.
+  팀 컨벤션은 레포 루트의 CLAUDE.md를 기준으로 삼습니다.
+
+reviews:
+  profile: "assertive"
+  high_level_summary: true
+  changed_files_summary: true
+  review_status: true
+  collapse_walkthrough: true
+  abort_on_close: true
+
+  path_filters:
+    - "src/**"
+    - ".github/**"
+    - ".coderabbit.yaml"
+    - "build.gradle"
+    - "settings.gradle"
+    - "!build/**"
+    - "!out/**"
+    - "!.gradle/**"
+    - "!gradle/wrapper/**"
+    - "!gradlew"
+    - "!gradlew.bat"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.jpeg"
+    - "!**/*.svg"
+    - "!**/*.lock"
+    - "!**/*.md"
+    - "!uploads/**"
+    - "!/tmp/uploads/**"
+
+  path_instructions:
+    - path: "src/main/**"
+      instructions: |
+        리뷰 기준은 레포 루트 CLAUDE.md 다. 이 프로젝트는 그린필드이므로,
+        아직 존재하지 않는 인프라(Spring Security/JWT/권한 체계, Redis, 메시지 큐 등)를
+        "도입해야 한다"고 요구하지 말 것. 필요해 보이면 "논의 제안" 수준으로만 코멘트한다.
+
+        [리뷰 우선순위]
+        1) 보안/시크릿/민감정보:
+           - API 키(GEMINI_API_KEY/ANTHROPIC_API_KEY)·DB 비번을 코드/yml/로그에 하드코딩하지 않았는지
+           - 사용자 업로드 이미지 원문(byte[]/base64)·PII가 로그/응답에 노출되지 않는지
+           - AOP `LoggingAspect`가 service 메서드 인자를 자동 로깅한다 → 민감 DTO/원문이 서비스 인자로
+             그대로 흘러 로그에 찍히지 않는지(필요 시 `safeValue` 분기 제안)
+        2) Spring AI / 비전 LLM:
+           - 특정 벤더 클라이언트(GoogleGenAi*/Anthropic*) 직접 의존 금지 → `ChatClient`/`ChatModel` 추상화 사용
+           - 모델 ID·온도·max-tokens를 코드 상수로 박지 말고 yml(`spring.ai.*`)에서 주입
+           - 구조화 출력은 `.entity(Type.class)`로 받기(수동 JSON 파싱 지양). 매핑 실패는 5xx ErrorCase로 변환
+           - LLM 전송 전 이미지 리사이즈(토큰 비용)·출력 분량 제한 적용 여부
+           - 진단 결과에 "참고용/의학적 진단 아님" 면책 문구 포함 여부
+           - `spring.ai.model.chat=none`(AI 비활성)에서도 부팅이 깨지지 않는지
+           - LLM/외부 호출 실패·타임아웃은 5xx로 표현(4xx로 가리지 말 것), raw 에러 메시지 노출 금지
+        3) 정합성/트랜잭션:
+           - `@Transactional` 경계가 맞는지(읽기 readOnly=true 권장)
+           - 느리고 실패 가능한 외부 호출(LLM/S3)을 트랜잭션 안에 길게 잡지 않는지
+        4) 성능:
+           - N+1 가능성 지적 및 대안(@EntityGraph, fetch join, batch size, projection)
+           - 조회는 필요한 필드만(Projection/DTO). 페이징+fetch join 조합 주의(카운트/중복 row)
+        5) 설계/가독성: 계층 분리, 책임/네이밍, 예외 처리 일관성
+
+        [Spring / JPA 체크리스트]
+        - 필드 주입 금지, 생성자 주입(`@RequiredArgsConstructor`)
+        - Service: 클래스 레벨 `@Transactional(readOnly = true)` + 쓰기 메서드에만 `@Transactional`
+        - 엔티티: `BaseEntity` 상속, `@NoArgsConstructor(PROTECTED)` + private 생성자 + `public static create(...)`
+        - 엔티티 Setter 금지(상태 변경은 도메인 메서드). 관계는 `@ManyToOne(fetch = LAZY)` 기본
+        - Enum 컬럼은 `@Enumerated(EnumType.STRING)`(ORDINAL 금지)
+        - soft delete(`BaseEntity.deletedAt`) 사용 도메인의 조회는 `deletedAt IS NULL` 조건 명시
+        - 엔티티를 컨트롤러로 직접 노출 금지 → 응답 DTO로 변환
+        - SQL/DDL은 PostgreSQL 기준(로컬·테스트 H2는 MODE=PostgreSQL). 운영 ddl-auto=validate라 스키마 변경은 별도 DDL 동반
+
+        [에러 / 응답 컨벤션 — 이 프로젝트 고유]
+        - 에러는 `ErrorCase` 인터페이스 + 도메인별 enum(`{Domain}ErrorCase implements ErrorCase`) + `ApplicationException`로 처리
+          (회사 스타일의 BusinessException/ErrorCode/SuccessCode·도메인별 Exception 클래스 양산은 이 프로젝트 컨벤션 아님)
+        - 도메인별 `errorCode`(4자리) 대역이 기존과 충돌하지 않는지
+        - 외부(LLM/S3) 장애는 5xx ErrorCase로 표현
+        - 모든 API 응답은 `CommonResponse<T>` 래퍼로 일관(raw 객체 반환·래핑 누락 지적)
+        - `GlobalExceptionHandler`에 임의 핸들러 추가는 자제(이미 공통 처리됨). `/actuator` 재throw 동작 보존
+
+        [검증 책임 분리]
+        - Controller(API) Layer: 형식 검증(`@Valid`, `@NotNull`, `@Size` 등 Bean Validation, 한글 메시지)
+        - Service Layer: 비즈니스 규칙 검증(상태/정합성) → `ApplicationException(도메인 ErrorCase)`
+        - 중복 검증 지양
+
+        [네이밍 / 레이어 규칙]
+        - 패키지: 소문자, 두 단어 이상은 snake_case. 클래스 PascalCase, 변수/메서드 camelCase
+        - Controller: `{Domain}Controller`
+        - Service: `{Domain}Service`  (별도 Usecase 인터페이스 분리 패턴은 쓰지 않음)
+        - Repository: `{Domain}Repository`
+        - DTO: 요청 `{Resource}{Action}Request` / 응답 `{Resource}{Action}Response`, 공통 요약 `{Resource}{Property}Dto`
+        - 에러 enum: `{Domain}ErrorCase`
+        - boolean DTO 필드: Lombok isXxx() 게터로 JSON 키에서 'is'가 빠질 수 있음 → 의도 시 `@JsonProperty` 명시
+
+        [이미지 업로드]
+        - 업로드는 `MultipartFile`. 멀티파트 한도(파일 10MB/요청 12MB) 초과·형식 위반은 도메인 ErrorCase로 검증
+        - 저장은 `ImageStorage` 추상화(로컬↔S3). S3 자격증명은 환경변수/IAM Role(키 하드코딩 금지)
+        - LLM에는 리사이즈된 바이트 전달, MIME 타입 검증 선행
+
+        [비동기]
+        - `@EnableAsync`는 `AsyncConfig`에만(다른 곳 추가 시 지적). 새 executor가 필요하면 논의 제안 수준으로
+
+    - path: "src/test/**"
+      instructions: |
+        [테스트 컨벤션 — CLAUDE.md §15]
+        - AssertJ만 사용(`assertThat`, `assertThatThrownBy`). JUnit `assertEquals`/`assertTrue` 금지
+        - BDDMockito만 사용(`given(...).willReturn(...)`, `then(...).should(...)`). `when().thenReturn()` 금지
+        - 컨트롤러 슬라이스는 `@WebMvcTest(controllers = ...)` + `@MockitoBean`(`@MockBean` deprecated → 금지)
+        - 응답 검증은 `CommonResponse` 래퍼 구조 기준(`$.message`, `$.data.*`, 에러는 `$.errorCode`)
+        - HTTP 상태는 `ErrorCase.getHttpStatusCode()`와 정확히 일치하는지
+        - 검증/생성용 DTO는 도메인별 Fixture 클래스(`{domain}/fixture/`) + `ReflectionTestUtils.setField`로 생성
+          (프로덕션 DTO에 테스트용 빌더/세터 추가 금지). 자주 쓰는 시나리오는 `defaultXxxRequest()` 헬퍼
+        - LLM/외부 호출(ChatClient/S3)은 모킹해 결정론적으로 테스트(실 호출 금지). 매핑 실패/외부 장애 분기도 케이스화
+        - `@Nested`로 메서드 단위 분할, `@DisplayName`은 `성공 - <조건>` / `실패 - <조건> → <ErrorCase>` 형식
+
+    - path: "src/main/resources/**"
+      instructions: |
+        - 시크릿(API 키·DB 비번)은 환경변수 placeholder(`${...}`)로만. 실제 값 하드코딩 금지
+        - 프로파일별 `ddl-auto` 의도 확인: local/test=create-drop, prod=validate(자동 스키마 변경 금지)
+        - `spring.ai.model.chat`(google-genai/anthropic/none) 전환 의도와 모델 옵션(model/temperature/max-tokens) 점검
+        - test resources는 `spring.ai.model.chat=none`로 AI 비활성 유지(테스트가 실 LLM 호출하지 않게)
+
+    - path: "build.gradle"
+      instructions: |
+        - Spring Boot(3.5.x) / Spring AI BOM(1.1.x) 버전 호환 변경 시 영향 점검
+        - 의존성 추가가 CLAUDE.md "아직 없는 것"(Security/Redis/큐/포맷터/마이그레이션 툴 등)에 해당하면
+          도입 배경을 PR 설명에서 확인하도록 요청
+        - `version` 변경 시 산출물 JAR 이름(server-<version>.jar)에 결합됨을 환기
+
+    - path: ".github/**"
+      instructions: |
+        - CI(GitHub Actions) 변경 시 JDK 17 / `./gradlew clean build` 단계가 유지되는지
+        - 시크릿이 워크플로 로그에 노출되지 않는지
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+      - "develop"
+    labels:
+      - "!wip"
+      - "!draft"
+      - "!skip-review"
+
+  tools:
+    gitleaks:
+      enabled: true
+    yamllint:
+      enabled: true
+    actionlint:
+      enabled: true
+
+chat:
+  auto_reply: true
+  art: false
+
+knowledge_base:
+  web_search:
+    enabled: true
