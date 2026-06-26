@@ -28,7 +28,7 @@ public record DiagnosisResponse(
 
     public record RoutineDto(String name, String product, String desc) {}
 
-    public static DiagnosisResponse from(SkinDiagnosisResult result) {
+    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result) {
         List<MetricDto> metricDtos = result.metrics().stream()
                 .map(m -> new MetricDto(m.name(), m.score()))
                 .toList();
@@ -42,7 +42,7 @@ public record DiagnosisResponse(
                 .toList();
 
         return new DiagnosisResponse(
-                null,                    // id: DB 저장 후 채워짐
+                diagnosis.getId(),
                 result.skinType(),
                 result.skinAge(),
                 result.totalScore(),
