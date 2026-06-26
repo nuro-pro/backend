@@ -1,5 +1,6 @@
 package com.nuro.server.diagnosis.controller;
 
+import com.nuro.server.diagnosis.dto.request.DiagnosisRequest;
 import com.nuro.server.diagnosis.dto.response.DiagnosisResponse;
 import com.nuro.server.diagnosis.service.DiagnosisService;
 import com.nuro.server.global.response.CommonResponse;
@@ -29,9 +30,10 @@ public class DiagnosisController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public CommonResponse<DiagnosisResponse> diagnose(
             @RequestParam Long userId,
-            @RequestPart("image") MultipartFile image
-    ) {
-        return CommonResponse.success(diagnosisService.diagnose(userId, image));
+            @RequestPart("image") MultipartFile image,
+            @RequestPart("survey")DiagnosisRequest surveyRequest
+            ) {
+        return CommonResponse.success(diagnosisService.diagnose(userId, image, surveyRequest));
     }
 
     @Operation(summary = "진단 결과 조회", description = "진단 ID로 결과(피부타입/지표/종합점수)를 조회합니다.")

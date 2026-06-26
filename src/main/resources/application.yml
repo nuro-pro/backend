@@ -26,7 +26,7 @@ spring:
           options:
             model: gemini-2.5-flash
             temperature: 0.7
-            max-output-tokens: 2048
+            max-output-tokens: 8192
     anthropic:
       api-key: ${ANTHROPIC_API_KEY:}
       chat:

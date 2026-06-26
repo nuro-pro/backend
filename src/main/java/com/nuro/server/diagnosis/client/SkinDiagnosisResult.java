@@ -9,14 +9,18 @@ import java.util.List;
  */
 public record SkinDiagnosisResult(
         String skinType,
+        Integer skinAge,
         Integer totalScore,
+        String totalDesc,
         String summary,
         List<MetricResult> metrics,
+        List<IngredientResult> ingredients,
+        List<RoutineResult> routine,
         String disclaimer   // "참고용이며 의학적 진단이 아님"
 ) {
-    public record MetricResult(
-            String name,
-            Integer score
-    ) {
-    }
+    public record MetricResult(String name, Integer score) {}
+
+    public record IngredientResult(String name, String badge, String desc) {}
+
+    public record RoutineResult(String name, String product, String desc) {}
 }
