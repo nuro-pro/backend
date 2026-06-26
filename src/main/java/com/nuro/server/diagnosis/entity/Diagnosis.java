@@ -1,5 +1,6 @@
 package com.nuro.server.diagnosis.entity;
 
+import com.nuro.server.diagnosis.client.SkinDiagnosisResult;
 import com.nuro.server.diagnosis.enums.DiagnosisStatus;
 import com.nuro.server.global.entity.BaseEntity;
 import jakarta.persistence.CascadeType;
@@ -40,28 +41,55 @@ public class Diagnosis extends BaseEntity {
     @Column(nullable = false, length = 500)
     private String imageUrl;
 
+    // ==== LLM 주요 결과
     // 피부 타입 (예: 건성/지성/복합성 등 LLM 분류 결과)
     @Column(length = 50)
     private String skinType;
+
+    // 피부 나이
+    @Column
+    private Integer skinAge;
 
     // 종합 점수
     @Column
     private Integer totalScore;
 
+    @Column(columnDefinition = "TEXT")
+    private String totalDesc;
+
     // AI 코멘트 요약 (사용자 노출용, 면책 문구 포함)
     @Column(columnDefinition = "TEXT")
     private String summary;
+
+    @Column(columnDefinition = "TEXT")
+    private String disclaimer;
 
     // LLM 원문 응답(JSON) 보관
     @Column(columnDefinition = "TEXT")
     private String rawResult;
 
+    // ===== 고정 6개 지표 =====
+    @Column
+    private Integer moistureScore; // 수분
+
+    @Column
+    private Integer wrinkleScore;  // 주름
+
+    @Column
+    private Integer pigmentScore;  // 색소
+
+    @Column
+    private Integer poreScore;     // 모공
+
+    @Column
+    private Integer sensitiveScore; // 민감
+
+    @Column
+    private Integer oilScore;      // 유분
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private DiagnosisStatus status;
-
-    @OneToMany(mappedBy = "diagnosis", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<DiagnosisMetric> metrics = new ArrayList<>();
 
     private Diagnosis(Long userId, String imageUrl, DiagnosisStatus status) {
         this.userId = userId;
@@ -74,14 +102,48 @@ public class Diagnosis extends BaseEntity {
         return new Diagnosis(userId, imageUrl, DiagnosisStatus.ANALYZING);
     }
 
-    // LLM 결과 반영 후 완료 처리 -> TODO: 파라미터/지표 매핑 구체화.
-    public void complete(String skinType, Integer totalScore, String summary, String rawResult) {
-        // TODO: 결과 필드 채우고 status를 COMPLETED로 전환, metrics 연관 추가
-        throw new UnsupportedOperationException("TODO: Diagnosis.complete 구현 필요");
+    // LLM 결과 반영 후 완료 처리
+    public void complete(SkinDiagnosisResult result, String rawResult) {
+        if(this.status != DiagnosisStatus.ANALYZING){
+            throw  new IllegalStateException("ANALYZING 상태에서만 완료 처리 할 수 잇습니다.");
+        }
+        this.skinType = result.skinType();
+        this.skinAge = result.skinAge();
+        this.totalScore = result.totalScore();
+        this.summary = result.summary();
+        this.totalDesc = result.totalDesc();
+        this.disclaimer = result.disclaimer();
+        this.rawResult = rawResult;
+
+        applyMetricScores(result.metrics());
+
+        this.status = DiagnosisStatus.COMPLETED;
+    }
+    public void fail() {
+        if (this.status == DiagnosisStatus.COMPLETED) {
+            throw new IllegalStateException("이미 완료된 진단은 실패 처리할 수 없습니다.");
+        }
+        this.status = DiagnosisStatus.FAILED;
     }
 
-    public void fail() {
-        // TODO: status FAILED 전환
-        throw new UnsupportedOperationException("TODO: Diagnosis.fail 구현 필요");
+    private void applyMetricScores(List<SkinDiagnosisResult.MetricResult> metrics) {
+        if (metrics == null) return;
+
+        for (SkinDiagnosisResult.MetricResult metric : metrics) {
+            if (metric == null || metric.name() == null) continue;
+
+            Integer score = metric.score();
+            switch (metric.name().trim()) {
+                case "수분" -> this.moistureScore = score;
+                case "주름" -> this.wrinkleScore = score;
+                case "색소" -> this.pigmentScore = score;
+                case "모공" -> this.poreScore = score;
+                case "민감" -> this.sensitiveScore = score;
+                case "유분" -> this.oilScore = score;
+                default -> {
+                    // 정의 외 지표는 무시 (원하면 예외로 바꿀 수 있음)
+                }
+            }
+        }
     }
 }

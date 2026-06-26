@@ -4,6 +4,7 @@ import com.nuro.server.diagnosis.client.SkinDiagnosisClient;
 import com.nuro.server.diagnosis.client.SkinDiagnosisResult;
 import com.nuro.server.diagnosis.dto.request.DiagnosisRequest;
 import com.nuro.server.diagnosis.dto.response.DiagnosisResponse;
+import com.nuro.server.diagnosis.entity.Diagnosis;
 import com.nuro.server.diagnosis.repository.DiagnosisRepository;
 import com.nuro.server.diagnosis.storage.ImageStorage;
 import com.nuro.server.diagnosis.util.ImageResizer;
