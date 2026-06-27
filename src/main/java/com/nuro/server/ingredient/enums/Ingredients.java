@@ -188,4 +188,21 @@ public enum Ingredients {
                 .findFirst()
                 .orElse(null);
     }
+
+    // 한글명 또는 영문명으로 enum을 추출
+    public static Ingredients findByName(String name) {
+        if (name == null) {
+            return null;
+        }
+        String normalized = normalize(name);
+        return Arrays.stream(values())
+                .filter(i -> normalize(i.korName).equals(normalized)
+                        || normalize(i.engName).equals(normalized))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static String normalize(String value) {
+        return value.replaceAll("\\s+", "").toLowerCase();
+    }
 }

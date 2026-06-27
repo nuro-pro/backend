@@ -41,30 +41,33 @@ public record DiagnosisResponse(
     public record RoutineDto(String name, String product, String desc) {}
 
     public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result) {
-        List<MetricDto> metricDtos = result.metrics().stream()
+        List<MetricDto> metricDtos = nullSafe(result.metrics()).stream()
+                .filter(Objects::nonNull)
                 .map(m -> new MetricDto(m.name(), m.score()))
                 .toList();
 
-        List<IngredientDto> ingredientDtos = result.ingredients().stream()
-                .map(i -> {
-                    Ingredients ingredient = Ingredients.findByKorName(i.name());
-                    if (ingredient == null) return null;
-                    return new IngredientDto(
-                            ingredient.getKorName(),
-                            ingredient.getEngName(),
-                            ingredient.getEwgGrade(),
-                            ingredient.getRiskLevel(),
-                            ingredient.getDataLevel(),
-                            ingredient.getDesc(),
-                            ingredient.getEffects(),
-                            ingredient.getHowToUse(),
-                            ingredient.getTip()
-                    );
-                })
+        // 추천 성분은 반드시 Ingredients 카드(18종) 안에서만
+        // LLM이 목록 밖 이름을 주면 매칭 실패 → 제외
+        List<IngredientDto> ingredientDtos = nullSafe(result.ingredients()).stream()
                 .filter(Objects::nonNull)
+                .map(i -> Ingredients.findByName(i.name()))
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(ingredient -> new IngredientDto(
+                        ingredient.getKorName(),
+                        ingredient.getEngName(),
+                        ingredient.getEwgGrade(),
+                        ingredient.getRiskLevel(),
+                        ingredient.getDataLevel(),
+                        ingredient.getDesc(),
+                        ingredient.getEffects(),
+                        ingredient.getHowToUse(),
+                        ingredient.getTip()
+                ))
                 .toList();
 
-        List<RoutineDto> routineDtos = result.routine().stream()
+        List<RoutineDto> routineDtos = nullSafe(result.routine()).stream()
+                .filter(Objects::nonNull)
                 .map(r -> new RoutineDto(r.name(), r.product(), r.desc()))
                 .toList();
 
@@ -80,5 +83,9 @@ public record DiagnosisResponse(
                 routineDtos,
                 result.disclaimer()
         );
+    }
+
+    private static <T> List<T> nullSafe(List<T> list) {
+        return list != null ? list : List.of();
     }
 }
