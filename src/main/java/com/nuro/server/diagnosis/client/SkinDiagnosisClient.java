@@ -89,15 +89,38 @@ public class SkinDiagnosisClient {
                  이때 ingredients는 반드시 다음 목록에서만 3개를 선택하세요: %s
                 """.formatted(skinCondition, skinConcern, skinSensitivity, ingredientNames);
 
-        return builder.build()
-                .prompt()
-                .user(userSpec -> userSpec
-                        .text(prompt)
-                        .media(mimeType, new ByteArrayResource(imageBytes))
-                )
-                .call()
-                .entity(SkinDiagnosisResult.class);
+        SkinDiagnosisResult result;
+        try {
+            result = builder.build()
+                    .prompt()
+                    .system(SYSTEM_PROMPT)
+                    .user(userSpec -> userSpec
+                            .text(prompt)
+                            .media(mimeType, new ByteArrayResource(imageBytes))
+                    )
+                    .call()
+                    .entity(SkinDiagnosisResult.class);
+        } catch (ApplicationException e) {
+            throw e;
+        } catch (Exception e) {
+            // 호출 자체 실패(네트워크/인증/타임아웃 등)
+            throw new ApplicationException(DiagnosisErrorCase.LLM_CALL_FAILED, e);
+        }
 
-        //throw new UnsupportedOperationException("TODO: SkinDiagnosisClient.diagnose 구현 필요");
+        // 구조화 매핑은 됐지만 핵심 필드가 비어 계약을 만족하지 못하는 경우
+        if (result == null
+                || result.totalScore() == null
+                || result.metrics() == null
+                || result.metrics().isEmpty()) {
+            throw new ApplicationException(DiagnosisErrorCase.LLM_RESPONSE_INVALID);
+        }
+        return result;
     }
+
+    private static final String SYSTEM_PROMPT = """
+            당신은 사용자의 피부 사진과 설문을 바탕으로 피부 상태를 분석해 주는 AI 도우미입니다.
+            - 결과는 참고용이며 의학적 진단이 아닙니다. 질병 진단·치료를 단정하지 마세요.
+            - 반드시 요청된 JSON 스키마만 출력하고, 그 외 설명 문장은 포함하지 마세요.
+            - 모든 점수는 0~100 사이 정수로만 답하세요.
+            """;
 }
