@@ -4,6 +4,7 @@ import com.nuro.server.diagnosis.client.SkinDiagnosisClient;
 import com.nuro.server.diagnosis.client.SkinDiagnosisResult;
 import com.nuro.server.diagnosis.dto.request.DiagnosisRequest;
 import com.nuro.server.diagnosis.dto.response.DiagnosisResponse;
+import com.nuro.server.diagnosis.entity.Diagnosis;
 import com.nuro.server.diagnosis.repository.DiagnosisRepository;
 import com.nuro.server.diagnosis.storage.ImageStorage;
 import com.nuro.server.diagnosis.util.ImageResizer;
@@ -31,11 +32,16 @@ public class DiagnosisService {
      */
     @Transactional
     public DiagnosisResponse diagnose(Long userId, MultipartFile image, DiagnosisRequest diagnosisRequest) {
+        Diagnosis diagnosis = null;
         try{
             byte[] imageBytes = image.getBytes();
             MimeType mimeType = image.getContentType() != null
                     ? MimeType.valueOf(image.getContentType())
                     : MimeTypeUtils.IMAGE_JPEG;
+
+            String imageUrl = imageStorage.store(imageBytes, mimeType);
+            diagnosis = Diagnosis.start(userId, imageUrl);
+            diagnosisRepository.save(diagnosis);
 
             SkinDiagnosisResult aiResult = skinDiagnosisClient.diagnose(
                     imageBytes,
@@ -45,10 +51,15 @@ public class DiagnosisService {
                     diagnosisRequest.skinSensitivity()
             );
 
-            return DiagnosisResponse.from(aiResult);
+            diagnosis.complete(aiResult, null);
 
-        }catch (IOException e){
-            throw new RuntimeException("이미지 파일을 읽는데 실패했습니다.", e);
+            return DiagnosisResponse.from(diagnosis, aiResult);
+        } catch (IOException e) {
+            if (diagnosis != null) diagnosis.fail();
+            throw new RuntimeException("이미지 처리 실패", e);
+        } catch (RuntimeException e) {
+            if (diagnosis != null) diagnosis.fail();
+            throw e;
         }
     }
 

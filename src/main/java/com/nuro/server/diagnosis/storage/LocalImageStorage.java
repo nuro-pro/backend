@@ -3,6 +3,12 @@ package com.nuro.server.diagnosis.storage;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
+
 /**
  * 로컬 디스크 저장 구현 -> 운영은 S3 구현으로 교체
  *
@@ -11,9 +17,27 @@ import org.springframework.util.MimeType;
 @Component
 public class LocalImageStorage implements ImageStorage {
 
+    private static final String DIR = "uploads/diagnosis";
+
     @Override
     public String store(byte[] bytes, MimeType mimeType) {
-        // TODO: 디렉토리 보장 → 파일명 생성 → 저장 → 경로/URL 반환
-        throw new UnsupportedOperationException("TODO: LocalImageStorage.store 구현 필요");
+        try {
+            Files.createDirectories(Paths.get(DIR));
+
+            String ext = "jpg";
+            if (mimeType != null) {
+                String t = mimeType.toString();
+                if ("image/png".equals(t)) ext = "png";
+                else if ("image/webp".equals(t)) ext = "webp";
+            }
+
+            String fileName = UUID.randomUUID() + "." + ext;
+            Path path = Paths.get(DIR, fileName);
+            Files.write(path, bytes);
+
+            return "/uploads/diagnosis/" + fileName; // 저장된 파일 접근 경로
+        } catch (IOException e) {
+            throw new RuntimeException("로컬 이미지 저장 실패", e);
+        }
     }
 }

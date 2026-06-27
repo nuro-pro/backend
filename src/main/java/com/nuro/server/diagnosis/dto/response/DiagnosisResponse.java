@@ -2,9 +2,11 @@ package com.nuro.server.diagnosis.dto.response;
 
 import com.nuro.server.diagnosis.client.SkinDiagnosisResult;
 import com.nuro.server.diagnosis.entity.Diagnosis;
+import com.nuro.server.ingredient.enums.Ingredients;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 진단 결과 API 응답, LLM 출력 타입(SkinDiagnosisResult)과 분리
@@ -24,17 +26,42 @@ public record DiagnosisResponse(
 ) {
     public record MetricDto(String name, Integer score) {}
 
-    public record IngredientDto(String name, String badge, String desc) {}
+    public record IngredientDto(
+            String korName,
+            String engName,
+            int ewgGrade,
+            String riskLevel,
+            String dataLevel,
+            String desc,
+            List<String> effects,
+            String howToUse,
+            String tip
+    ) {}
 
     public record RoutineDto(String name, String product, String desc) {}
 
-    public static DiagnosisResponse from(SkinDiagnosisResult result) {
+    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result) {
         List<MetricDto> metricDtos = result.metrics().stream()
                 .map(m -> new MetricDto(m.name(), m.score()))
                 .toList();
 
         List<IngredientDto> ingredientDtos = result.ingredients().stream()
-                .map(i -> new IngredientDto(i.name(), i.badge(), i.desc()))
+                .map(i -> {
+                    Ingredients ingredient = Ingredients.findByKorName(i.name());
+                    if (ingredient == null) return null;
+                    return new IngredientDto(
+                            ingredient.getKorName(),
+                            ingredient.getEngName(),
+                            ingredient.getEwgGrade(),
+                            ingredient.getRiskLevel(),
+                            ingredient.getDataLevel(),
+                            ingredient.getDesc(),
+                            ingredient.getEffects(),
+                            ingredient.getHowToUse(),
+                            ingredient.getTip()
+                    );
+                })
+                .filter(Objects::nonNull)
                 .toList();
 
         List<RoutineDto> routineDtos = result.routine().stream()
@@ -42,7 +69,7 @@ public record DiagnosisResponse(
                 .toList();
 
         return new DiagnosisResponse(
-                null,                    // id: DB 저장 후 채워짐
+                diagnosis.getId(),
                 result.skinType(),
                 result.skinAge(),
                 result.totalScore(),
