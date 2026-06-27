@@ -2,6 +2,7 @@ package com.nuro.server.diagnosis.client;
 
 import com.nuro.server.diagnosis.exception.DiagnosisErrorCase;
 import com.nuro.server.global.exception.ApplicationException;
+import com.nuro.server.ingredient.enums.Ingredients;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.content.Media;
@@ -9,6 +10,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * 비전 LLM 호출 래퍼
@@ -33,6 +37,10 @@ public class SkinDiagnosisClient {
             // AI 비활성(none) 또는 모델 미구성
             throw new ApplicationException(DiagnosisErrorCase.LLM_CALL_FAILED);
         }
+        String ingredientNames = Arrays.stream(Ingredients.values())
+                .map(Ingredients::getKorName)
+                .collect(Collectors.joining(", "));
+
         String prompt = """
                 당신은 전문 피부과 AI 분석가입니다.
                 아래 사용자 정보와 피부 사진을 바탕으로 피부를 분석해주세요.
@@ -65,9 +73,9 @@ public class SkinDiagnosisClient {
                     {"name": "유분", "score": 0~100 숫자만}
                   ],
                   "ingredients": [
-                    {"name": "성분명", "badge": "효능 한 단어", "desc": "이 성분이 이 피부에 좋은 이유 1~2문장"},
-                    {"name": "성분명", "badge": "효능 한 단어", "desc": "이 성분이 이 피부에 좋은 이유 1~2문장"},
-                    {"name": "성분명", "badge": "효능 한 단어", "desc": "이 성분이 이 피부에 좋은 이유 1~2문장"}
+                    {"name": "성분명"},
+                    {"name": "성분명"},
+                    {"name": "성분명"}
                   ],
                   "routine": [
                     {"name": "클렌징", "product": "추천 제품 유형", "desc": "이유 1문장"},
@@ -78,7 +86,8 @@ public class SkinDiagnosisClient {
                   ],
                   "disclaimer": "이 결과는 참고용이며 의학적 진단이 아닙니다."
                  }
-                """.formatted(skinCondition, skinConcern, skinSensitivity);
+                 이때 ingredients는 반드시 다음 목록에서만 3개를 선택하세요: %s
+                """.formatted(skinCondition, skinConcern, skinSensitivity, ingredientNames);
 
         return builder.build()
                 .prompt()

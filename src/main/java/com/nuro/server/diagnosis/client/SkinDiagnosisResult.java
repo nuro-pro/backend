@@ -20,7 +20,7 @@ public record SkinDiagnosisResult(
 ) {
     public record MetricResult(String name, Integer score) {}
 
-    public record IngredientResult(String name, String badge, String desc) {}
+    public record IngredientResult(String name) {}
 
     public record RoutineResult(String name, String product, String desc) {}
 }
