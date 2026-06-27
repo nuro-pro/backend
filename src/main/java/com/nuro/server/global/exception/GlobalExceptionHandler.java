@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.ObjectError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -71,6 +72,14 @@ public class GlobalExceptionHandler {
         return status(HttpStatus.BAD_REQUEST)
                 .body(CommonResponse.error(GlobalErrorCase.INVALID_INPUT.getErrorCode(),
                         "필수 요청 파트가 누락되었습니다: " + e.getRequestPartName()));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<CommonResponse<?>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
+        log.warn("[MediaTypeNotSupported] contentType={}", e.getContentType());
+        return status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(CommonResponse.error(GlobalErrorCase.INVALID_INPUT.getErrorCode(),
+                        "지원하지 않는 Content-Type 입니다: " + e.getContentType()));
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
