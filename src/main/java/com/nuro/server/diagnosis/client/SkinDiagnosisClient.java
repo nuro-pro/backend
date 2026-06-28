@@ -78,15 +78,15 @@ public class SkinDiagnosisClient {
                     {"name": "성분명"}
                   ],
                   "routine": [
-                    {"name": "클렌징", "product": "추천 제품 유형", "desc": "이유 1문장"},
-                    {"name": "토너", "product": "추천 제품 유형", "desc": "이유 1문장"},
-                    {"name": "세럼", "product": "추천 제품 유형", "desc": "이유 1문장"},
-                    {"name": "수분크림", "product": "추천 제품 유형", "desc": "이유 1문장"},
-                    {"name": "선크림", "product": "추천 제품 유형", "desc": "이유 1문장"}
+                    {"name": "단계명", "product": "추천 제품 유형", "desc": "이유 1문장"},
+                    {"name": "단계명", "product": "추천 제품 유형", "desc": "이유 1문장"},
+                    {"name": "단계명", "product": "추천 제품 유형", "desc": "이유 1문장"},
                   ],
                   "disclaimer": "이 결과는 참고용이며 의학적 진단이 아닙니다."
                  }
                  이때 ingredients는 반드시 다음 목록에서만 3개를 선택하세요: %s
+                 routine은 반드시 3단계로 구성하고, 실제 스킨케어 도포 순서대로 제시하세요.
+                 각 단계의 product에는 위에서 선택한 ingredients 중 해당 단계에 어울리는 성분이 포함된 제품 유형을 추천하세요.
                 """.formatted(skinCondition, skinConcern, skinSensitivity, ingredientNames);
 
         SkinDiagnosisResult result;
