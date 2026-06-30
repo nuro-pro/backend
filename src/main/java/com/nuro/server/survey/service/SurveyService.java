@@ -8,6 +8,7 @@ import com.nuro.server.survey.dto.response.SurveyQuestionResponse;
 import com.nuro.server.survey.dto.response.SurveyQuestionWithAnswerResponse;
 import com.nuro.server.survey.entity.SurveyAnswer;
 import com.nuro.server.survey.entity.SurveyQuestion;
+import com.nuro.server.survey.enums.DiagnosisSurveyQuestion;
 import com.nuro.server.survey.exception.SurveyErrorCase;
 import com.nuro.server.survey.repository.SurveyAnswerRepository;
 import com.nuro.server.survey.repository.SurveyQuestionRepository;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -58,8 +60,22 @@ public class SurveyService {
     public void addAnswer(SurveyAnswerRequest request){
         SurveyQuestion question = surveyQuestionRepository.findById(request.questionId())
                 .orElseThrow(()->new ApplicationException(SurveyErrorCase.SURVEY_QUESTION_NOT_FOUND));
-        SurveyAnswer surveyAnswer = SurveyAnswer.create(question, request.comment());
+        // 관리자 직접 추가 응답은 특정 사용자에 귀속되지 않음(userId null)
+        SurveyAnswer surveyAnswer = SurveyAnswer.create(question, request.comment(), null);
         surveyAnswerRepository.save(surveyAnswer);
+    }
+
+    // 진단 플로우 설문 응답을 사용자(userId)에 귀속해 저장
+    @Transactional
+    public void saveDiagnosisAnswers(Long userId, Map<DiagnosisSurveyQuestion, String> answers) {
+        answers.forEach((question, comment) -> {
+            if (comment == null || comment.isBlank()) {
+                return;
+            }
+            SurveyQuestion surveyQuestion = surveyQuestionRepository.findByCode(question.code())
+                    .orElseThrow(() -> new ApplicationException(SurveyErrorCase.SURVEY_QUESTION_NOT_FOUND));
+            surveyAnswerRepository.save(SurveyAnswer.create(surveyQuestion, comment, userId));
+        });
     }
 
     //답변 get

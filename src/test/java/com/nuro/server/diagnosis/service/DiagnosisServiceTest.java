@@ -11,6 +11,9 @@ import com.nuro.server.diagnosis.repository.DiagnosisRepository;
 import com.nuro.server.diagnosis.storage.ImageStorage;
 import com.nuro.server.diagnosis.util.ImageResizer;
 import com.nuro.server.global.exception.ApplicationException;
+import com.nuro.server.survey.service.SurveyService;
+import com.nuro.server.user.dto.response.UserResponse;
+import com.nuro.server.user.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,7 +30,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -50,7 +55,14 @@ class DiagnosisServiceTest {
     @Mock
     private ObjectMapper objectMapper;
     @Mock
+    private UserService userService;
+    @Mock
+    private SurveyService surveyService;
+    @Mock
     private MultipartFile image;
+
+    // 실제 나이 24세 → 또래 비교는 20대(AgeBand.TWENTIES) 기준
+    private final UserResponse user = new UserResponse(1L, "user01", "닉네임", 24);
 
     private final DiagnosisRequest survey =
             new DiagnosisRequest("금방 건조하고 당겨요", "트러블이 나요", "쉽게 붉어져요");
@@ -88,6 +100,7 @@ class DiagnosisServiceTest {
             given(image.isEmpty()).willReturn(false);
             given(image.getContentType()).willReturn("image/jpeg");
             given(image.getBytes()).willReturn(original);
+            given(userService.getUser(1L)).willReturn(user);
             given(imageResizer.resize(any(byte[].class), any(MimeType.class))).willReturn(resized);
             given(skinDiagnosisClient.diagnose(any(), any(), anyString(), anyString(), anyString()))
                     .willReturn(sampleResult());
@@ -109,6 +122,8 @@ class DiagnosisServiceTest {
             assertThat(response.ingredients().get(0).engName()).isNotBlank();
             assertThat(response.routine()).hasSize(1);
             then(skinDiagnosisClient).should().diagnose(any(), any(), anyString(), anyString(), anyString());
+            // 설문 응답이 userId로 저장되는지 확인
+            then(surveyService).should().saveDiagnosisAnswers(eq(1L), anyMap());
         }
 
         @Test
@@ -148,6 +163,7 @@ class DiagnosisServiceTest {
             diagnosis.complete(sampleResult(), "{\"json\":true}");
             given(diagnosisRepository.findById(10L)).willReturn(Optional.of(diagnosis));
             given(objectMapper.readValue(anyString(), any(Class.class))).willReturn(sampleResult());
+            given(userService.getUser(1L)).willReturn(user);
 
             DiagnosisResponse response = diagnosisService.getDiagnosis(10L);
 
