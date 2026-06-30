@@ -41,9 +41,9 @@ public record DiagnosisResponse(
 
     public record RoutineDto(String name, String product, String desc) {}
 
-    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result) {
-        // 이미지에서 추정된 나이대(skinAge)에 해당하는 또래 평균을 백엔드에서 결정
-        AgeBand peerBand = AgeBand.of(result.skinAge());
+    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result, Integer peerAge) {
+        // 또래 평균은 사용자의 실제 나이(온보딩 입력) 기준으로 백엔드에서 결정
+        AgeBand peerBand = AgeBand.of(peerAge);
 
         List<MetricDto> metricDtos = nullSafe(result.metrics()).stream()
                 .filter(Objects::nonNull)
