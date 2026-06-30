@@ -99,7 +99,11 @@ class DiagnosisServiceTest {
 
             assertThat(response.skinType()).isEqualTo("건성");
             assertThat(response.totalScore()).isEqualTo(53);
+            // skinAge=24 → 20대 구간(AgeBand.TWENTIES) 또래 평균
+            assertThat(response.peerTotalScore()).isEqualTo(60);
             assertThat(response.metrics()).hasSize(6);
+            assertThat(response.metrics().get(0).name()).isEqualTo("수분");
+            assertThat(response.metrics().get(0).peerScore()).isEqualTo(60);
             assertThat(response.ingredients()).hasSize(3);
             assertThat(response.ingredients().get(0).korName()).isEqualTo("히알루론산");
             assertThat(response.ingredients().get(0).engName()).isNotBlank();
