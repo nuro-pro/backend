@@ -2,9 +2,9 @@ package com.nuro.server.diagnosis.dto.response;
 
 import com.nuro.server.diagnosis.client.SkinDiagnosisResult;
 import com.nuro.server.diagnosis.entity.Diagnosis;
+import com.nuro.server.diagnosis.enums.AgeBand;
 import com.nuro.server.ingredient.enums.Ingredients;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -17,6 +17,7 @@ public record DiagnosisResponse(
         String skinType,
         Integer skinAge,
         Integer totalScore,
+        Integer peerTotalScore,
         String totalDesc,
         String summary,
         List<MetricDto> metrics,
@@ -24,7 +25,7 @@ public record DiagnosisResponse(
         List<RoutineDto> routine,
         String disclaimer
 ) {
-    public record MetricDto(String name, Integer score) {}
+    public record MetricDto(String name, Integer score, Integer peerScore) {}
 
     public record IngredientDto(
             String korName,
@@ -41,9 +42,12 @@ public record DiagnosisResponse(
     public record RoutineDto(String name, String product, String desc) {}
 
     public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result) {
+        // 이미지에서 추정된 나이대(skinAge)에 해당하는 또래 평균을 백엔드에서 결정
+        AgeBand peerBand = AgeBand.of(result.skinAge());
+
         List<MetricDto> metricDtos = nullSafe(result.metrics()).stream()
                 .filter(Objects::nonNull)
-                .map(m -> new MetricDto(m.name(), m.score()))
+                .map(m -> new MetricDto(m.name(), m.score(), peerBand.peerScoreOf(m.name())))
                 .toList();
 
         // 추천 성분은 반드시 Ingredients 카드(18종) 안에서만
@@ -76,6 +80,7 @@ public record DiagnosisResponse(
                 result.skinType(),
                 result.skinAge(),
                 result.totalScore(),
+                peerBand.getPeerTotalScore(),
                 result.totalDesc(),
                 result.summary(),
                 metricDtos,
