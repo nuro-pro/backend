@@ -36,8 +36,8 @@ class DiagnosisControllerTest {
 
     private DiagnosisResponse sampleResponse() {
         return new DiagnosisResponse(
-                1L, "건성", 24, 53, "수분 관리가 필요합니다.", "건조함이 두드러집니다.",
-                List.of(new DiagnosisResponse.MetricDto("수분", 62)),
+                1L, "건성", 24, 53, 52, "수분 관리가 필요합니다.", "건조함이 두드러집니다.",
+                List.of(new DiagnosisResponse.MetricDto("수분", 62, 58)),
                 List.of(new DiagnosisResponse.IngredientDto(
                         "히알루론산", "Hyaluronic acid", 1, "낮음", "적당함",
                         "깊은 보습 성분", List.of("깊은 보습"), "세안 > 토너", "촉촉할 때 발라요")),
@@ -65,8 +65,10 @@ class DiagnosisControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("success"))
                 .andExpect(jsonPath("$.data.totalScore").value(53))
+                .andExpect(jsonPath("$.data.peerTotalScore").value(52))
                 .andExpect(jsonPath("$.data.skinType").value("건성"))
                 .andExpect(jsonPath("$.data.metrics[0].name").value("수분"))
+                .andExpect(jsonPath("$.data.metrics[0].peerScore").value(58))
                 .andExpect(jsonPath("$.data.ingredients[0].korName").value("히알루론산"));
     }
 
