@@ -9,16 +9,12 @@ import java.util.List;
  */
 public record SurveyQuestionResponse(
         Long questionId,
-        Integer questionNo,
-        String content,
-        List<String> choices
+        String content
 ) {
     public static SurveyQuestionResponse from(SurveyQuestion question) {
         return new SurveyQuestionResponse(
                 question.getId(),
-                question.getQuestionNo(),
-                question.getContent(),
-                question.getChoices()
+                question.getContent()
         );
     }
 }
