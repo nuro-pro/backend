@@ -14,9 +14,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 사용자가 제출한 설문 응답 1건
- */
 @Entity
 @Getter
 @Table(name = "survey_answer")
@@ -27,24 +24,27 @@ public class SurveyAnswer extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long userId;
-
+    //질문 id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "survey_question_id", nullable = false)
     private SurveyQuestion question;
 
-    // 선택한 선택지 번호
+    //답변
     @Column(nullable = false)
-    private Integer choiceNo;
+    private String comment;
 
-    private SurveyAnswer(Long userId, SurveyQuestion question, Integer choiceNo) {
-        this.userId = userId;
+    private SurveyAnswer(
+            SurveyQuestion question,
+            String comment
+    ) {
         this.question = question;
-        this.choiceNo = choiceNo;
+        this.comment = comment;
     }
 
-    public static SurveyAnswer create(Long userId, SurveyQuestion question, Integer choiceNo) {
-        return new SurveyAnswer(userId, question, choiceNo);
+    public static SurveyAnswer create(
+            SurveyQuestion question,
+            String comment
+    ) {
+        return new SurveyAnswer(question, comment);
     }
 }

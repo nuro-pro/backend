@@ -24,19 +24,27 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = true)
+    private String username;
+
+    @Column(nullable = true, unique = true)
+    private String password;
+
     @Column(nullable = false, length = 30)
     private String nickname;
 
     @Column(nullable = false)
     private Integer age;
 
-    private User(String nickname, Integer age) {
+    private User(String username, String password, String nickname, Integer age) {
+        this.username = username;
+        this.password = password;
         this.nickname = nickname;
         this.age = age;
     }
 
-    public static User create(String nickname, Integer age) {
+    public static User create(String username, String password, String nickname, Integer age) {
         // TODO: 닉네임/나이 도메인 불변식 검증
-        return new User(nickname, age);
+        return new User(username, password, nickname, age);
     }
 }

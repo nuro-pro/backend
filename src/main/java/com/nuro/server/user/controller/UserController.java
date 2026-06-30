@@ -25,7 +25,7 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "사용자 등록", description = "온보딩 단계에서 닉네임/나이를 입력받아 익명 사용자를 생성합니다.")
+    @Operation(summary = "사용자 등록", description = "온보딩 단계에서 닉네임/나이를 입력받아 익명 사용자를, 회원가입을 통해 사용자를 생성합니다.")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CommonResponse<UserResponse> register(@Valid @RequestBody UserRegisterRequest request) {

@@ -1,7 +1,10 @@
 package com.nuro.server.user.service;
 
+import com.nuro.server.global.exception.ApplicationException;
 import com.nuro.server.user.dto.request.UserRegisterRequest;
 import com.nuro.server.user.dto.response.UserResponse;
+import com.nuro.server.user.entity.User;
+import com.nuro.server.user.exception.UserErrorCase;
 import com.nuro.server.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,10 +19,13 @@ public class UserService {
 
     @Transactional
     public UserResponse register(UserRegisterRequest request) {
-        throw new UnsupportedOperationException("TODO: UserService.register 구현 필요");
+        User user = User.create(request.username(), request.password(), request.nickname(), request.age());
+        userRepository.save(user);
+        return UserResponse.from(user);
     }
 
     public UserResponse getUser(Long userId) {
-        throw new UnsupportedOperationException("TODO: UserService.getUser 구현 필요");
+        return UserResponse.from(userRepository.findById(userId).
+                orElseThrow(()-> new ApplicationException(UserErrorCase.USER_NOT_FOUND)));
     }
 }
