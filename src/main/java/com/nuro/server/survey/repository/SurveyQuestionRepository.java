@@ -9,7 +9,4 @@ import java.util.Optional;
 public interface SurveyQuestionRepository extends JpaRepository<SurveyQuestion, Long> {
     //active true인 모든 질문 조회
     List<SurveyQuestion> findAllByDeletedAtIsNullOrderById();
-
-    // 코드로 고정 문항 조회
-    Optional<SurveyQuestion> findByCode(String code);
 }

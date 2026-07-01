@@ -51,31 +51,14 @@ public class SurveyService {
                 .toList();
     }
 
-
-
-
     // ===답변
     //답변 추가
     @Transactional
     public void addAnswer(SurveyAnswerRequest request){
         SurveyQuestion question = surveyQuestionRepository.findById(request.questionId())
                 .orElseThrow(()->new ApplicationException(SurveyErrorCase.SURVEY_QUESTION_NOT_FOUND));
-        // 관리자 직접 추가 응답은 특정 사용자에 귀속되지 않음(userId null)
-        SurveyAnswer surveyAnswer = SurveyAnswer.create(question, request.comment(), null);
+        SurveyAnswer surveyAnswer = SurveyAnswer.create(question, request.comment());
         surveyAnswerRepository.save(surveyAnswer);
-    }
-
-    // 진단 플로우 설문 응답을 사용자(userId)에 귀속해 저장
-    @Transactional
-    public void saveDiagnosisAnswers(Long userId, Map<DiagnosisSurveyQuestion, String> answers) {
-        answers.forEach((question, comment) -> {
-            if (comment == null || comment.isBlank()) {
-                return;
-            }
-            SurveyQuestion surveyQuestion = surveyQuestionRepository.findByCode(question.code())
-                    .orElseThrow(() -> new ApplicationException(SurveyErrorCase.SURVEY_QUESTION_NOT_FOUND));
-            surveyAnswerRepository.save(SurveyAnswer.create(surveyQuestion, comment, userId));
-        });
     }
 
     //답변 get

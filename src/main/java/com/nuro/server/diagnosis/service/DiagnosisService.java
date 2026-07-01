@@ -7,14 +7,22 @@ import com.nuro.server.diagnosis.client.SkinDiagnosisResult;
 import com.nuro.server.diagnosis.dto.request.DiagnosisRequest;
 import com.nuro.server.diagnosis.dto.response.DiagnosisResponse;
 import com.nuro.server.diagnosis.entity.Diagnosis;
+import com.nuro.server.diagnosis.entity.DiagnosisSurveyAnswer;
 import com.nuro.server.diagnosis.exception.DiagnosisErrorCase;
 import com.nuro.server.diagnosis.repository.DiagnosisRepository;
+import com.nuro.server.diagnosis.repository.DiagnosisSurveyAnswerRepository;
 import com.nuro.server.diagnosis.storage.ImageStorage;
 import com.nuro.server.diagnosis.util.ImageResizer;
 import com.nuro.server.global.exception.ApplicationException;
+import com.nuro.server.survey.entity.SurveyAnswer;
 import com.nuro.server.survey.enums.DiagnosisSurveyQuestion;
+import com.nuro.server.survey.exception.SurveyErrorCase;
+import com.nuro.server.survey.repository.SurveyAnswerRepository;
 import com.nuro.server.survey.service.SurveyService;
 import com.nuro.server.user.dto.response.UserResponse;
+import com.nuro.server.user.entity.User;
+import com.nuro.server.user.exception.UserErrorCase;
+import com.nuro.server.user.repository.UserRepository;
 import com.nuro.server.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,8 +34,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,12 +49,15 @@ public class DiagnosisService {
             Set.of("image/jpeg", "image/jpg", "image/png", "image/webp");
 
     private final DiagnosisRepository diagnosisRepository;
+    private final DiagnosisSurveyAnswerRepository diagnosisSurveyAnswerRepository;
     private final SkinDiagnosisClient skinDiagnosisClient;
     private final ImageStorage imageStorage;
     private final ImageResizer imageResizer;
     private final ObjectMapper objectMapper;
     private final UserService userService;
     private final SurveyService surveyService;
+    private final SurveyAnswerRepository surveyAnswerRepository;
+    private final UserRepository userRepository;
 
     /**
      * 사진 업로드 → 검증 → 리사이즈 → 비전 LLM 호출 → 저장된 결과 영속화
@@ -54,20 +67,27 @@ public class DiagnosisService {
         validateImage(image);
 
         // 사용자 검증 + 또래 평균 비교에 쓸 실제 나이 확보(LLM 호출 전에 빠르게 실패)
-        UserResponse user = userService.getUser(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new ApplicationException(UserErrorCase.USER_NOT_FOUND));
 
         MimeType mimeType = resolveMimeType(image);
         byte[] resized = resizeForLlm(image, mimeType);
+        List<SurveyAnswer> answers = request.answers().stream()
+                .map(item -> surveyAnswerRepository.findById(item.answerId())
+                        .orElseThrow(()-> new ApplicationException(SurveyErrorCase.SURVEY_ANSWER_NOT_FOUND)))
+                .toList();
+
+        String surveyText = answers.stream().map(
+                answer -> "- "+answer.getQuestion().getContent()
+                +": "+answer.getComment()
+        ).collect(Collectors.joining());
 
         // 외부 LLM 호출
         SkinDiagnosisResult aiResult = skinDiagnosisClient.diagnose(
                 resized,
                 mimeType,
-                request.skinCondition(),
-                request.skinConcern(),
-                request.skinSensitivity()
+                surveyText
         );
-
         // 성공한 결과만 이미지 저장 + 영속화
         String imageUrl = imageStorage.store(resized, mimeType);
 
@@ -75,10 +95,19 @@ public class DiagnosisService {
         diagnosis.complete(aiResult, toJson(aiResult));
         diagnosisRepository.save(diagnosis);
 
-        // 사용자의 설문 응답을 userId에 귀속해 저장
-        surveyService.saveDiagnosisAnswers(userId, toSurveyAnswers(request));
+        List<DiagnosisSurveyAnswer> diagnosisAnswers =
+                answers.stream()
+                        .map(answer ->
+                                DiagnosisSurveyAnswer.create(
+                                        user,
+                                        diagnosis,
+                                        answer
+                                ))
+                        .toList();
 
-        return DiagnosisResponse.from(diagnosis, aiResult, user.age());
+        diagnosisSurveyAnswerRepository.saveAll(diagnosisAnswers);
+
+        return DiagnosisResponse.from(diagnosis, aiResult, user.getAge());
     }
 
     // 진단 ID로 저장된 결과를 조회
@@ -90,15 +119,6 @@ public class DiagnosisService {
         SkinDiagnosisResult result = fromJson(diagnosis.getRawResult());
         UserResponse user = userService.getUser(diagnosis.getUserId());
         return DiagnosisResponse.from(diagnosis, result, user.age());
-    }
-
-    // 진단 설문을 고정 문항 코드에 매핑
-    private Map<DiagnosisSurveyQuestion, String> toSurveyAnswers(DiagnosisRequest request) {
-        Map<DiagnosisSurveyQuestion, String> answers = new LinkedHashMap<>();
-        answers.put(DiagnosisSurveyQuestion.SKIN_CONDITION, request.skinCondition());
-        answers.put(DiagnosisSurveyQuestion.SKIN_CONCERN, request.skinConcern());
-        answers.put(DiagnosisSurveyQuestion.SKIN_SENSITIVITY, request.skinSensitivity());
-        return answers;
     }
 
     private void validateImage(MultipartFile image) {

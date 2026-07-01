@@ -26,11 +26,10 @@ public class SurveyController {
     // ===== 일반 유저용 =====
 
     @Operation(summary = "문항-응답 전체 구조 조회 (일반 유저)")
-    @GetMapping("/survey")
+    @GetMapping
     public CommonResponse<List<SurveyQuestionWithAnswerResponse>> getSurveyFull() {
         return CommonResponse.success(surveyService.getSurveyFull());
     }
-
 
     // ===== 관리자용 =====
     // ===== 설문 문항
