@@ -181,14 +181,6 @@ public enum Ingredients {
     private final String howToUse;      // 사용 순서
     private final String tip;           // 사용 팁
 
-    // 한글명으로 enum 찾기
-    public static Ingredients findByKorName(String korName) {
-        return Arrays.stream(values())
-                .filter(i -> i.korName.equals(korName))
-                .findFirst()
-                .orElse(null);
-    }
-
     // 한글명 또는 영문명으로 enum을 추출
     public static Ingredients findByName(String name) {
         if (name == null) {

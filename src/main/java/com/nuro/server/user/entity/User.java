@@ -24,10 +24,10 @@ public class User extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = true)
+    @Column(nullable = true, unique = true)
     private String username;
 
-    @Column(nullable = true, unique = true)
+    @Column(nullable = true)
     private String password;
 
     @Column(nullable = false, length = 30)
