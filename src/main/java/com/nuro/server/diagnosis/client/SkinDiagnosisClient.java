@@ -32,18 +32,13 @@ public class SkinDiagnosisClient {
      */
     public SkinDiagnosisResult diagnose(byte[] imageBytes,
                                         MimeType mimeType,
-                                        String surveyText) {
+                                        String surveyText,
+                                        String ingredientNames) {
         ChatClient.Builder builder = chatClientBuilderProvider.getIfAvailable();
         if (builder == null) {
             // AI 비활성(none) 또는 모델 미구성
             throw new ApplicationException(DiagnosisErrorCase.LLM_CALL_FAILED);
         }
-        String ingredientNames = Arrays.stream(Ingredients.values())
-                .map(Ingredients::getKorName)
-                .collect(Collectors.joining(", "));
-
-        //answers에서 문항, 답변 불러오는 메서드
-
 
         String prompt = """
                 당신은 전문 피부과 AI 분석가입니다.

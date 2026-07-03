@@ -14,6 +14,8 @@ import com.nuro.server.diagnosis.repository.DiagnosisSurveyAnswerRepository;
 import com.nuro.server.diagnosis.storage.ImageStorage;
 import com.nuro.server.diagnosis.util.ImageResizer;
 import com.nuro.server.global.exception.ApplicationException;
+import com.nuro.server.ingredient.entity.Ingredient;
+import com.nuro.server.ingredient.repository.IngredientRepository;
 import com.nuro.server.survey.entity.SurveyAnswer;
 import com.nuro.server.survey.enums.DiagnosisSurveyQuestion;
 import com.nuro.server.survey.exception.SurveyErrorCase;
@@ -33,10 +35,8 @@ import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.Array;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -58,6 +58,7 @@ public class DiagnosisService {
     private final SurveyService surveyService;
     private final SurveyAnswerRepository surveyAnswerRepository;
     private final UserRepository userRepository;
+    private final IngredientRepository ingredientRepository;
 
     /**
      * 사진 업로드 → 검증 → 리사이즈 → 비전 LLM 호출 → 저장된 결과 영속화
@@ -77,16 +78,23 @@ public class DiagnosisService {
                         .orElseThrow(()-> new ApplicationException(SurveyErrorCase.SURVEY_ANSWER_NOT_FOUND)))
                 .toList();
 
+        //설문 결과
         String surveyText = answers.stream().map(
                 answer -> "- "+answer.getQuestion().getContent()
                 +": "+answer.getComment()
         ).collect(Collectors.joining());
 
+        //ingredient 목록
+        String ingredientNames = ingredientRepository.findAll().stream()
+                .map(Ingredient::getKorName)
+                .collect(Collectors.joining(", "));
+
         // 외부 LLM 호출
         SkinDiagnosisResult aiResult = skinDiagnosisClient.diagnose(
                 resized,
                 mimeType,
-                surveyText
+                surveyText,
+                ingredientNames
         );
         // 성공한 결과만 이미지 저장 + 영속화
         String imageUrl = imageStorage.store(resized, mimeType);
