@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/surveys")
-@Tag(name = "설문", description = "피부 설문 문항 조회 및 응답 제출")
+@Tag(name = "설문 문항 관리")
 public class SurveyController {
 
     private final SurveyService surveyService;
