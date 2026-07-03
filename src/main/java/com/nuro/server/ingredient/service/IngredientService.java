@@ -37,7 +37,7 @@ public class IngredientService {
 
     //전체 불러오기
     public List<IngredientResponse> getAllIngredients(){
-        return ingredientRepository.findAll()
+        return ingredientRepository.findAllByDeletedAtIsNullOrderById()
                 .stream()
                 .map(IngredientResponse::from)
                 .toList();
