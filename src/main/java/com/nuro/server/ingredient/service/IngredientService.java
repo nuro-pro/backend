@@ -20,6 +20,7 @@ public class IngredientService {
     private final IngredientRepository ingredientRepository;
 
     //추가
+    @Transactional
     public void addIngredient(IngredientRequest request){
         Ingredient ingredient = Ingredient.create(
                 request.korName(),
@@ -44,6 +45,7 @@ public class IngredientService {
     }
 
     //삭제
+    @Transactional
     public void deleteIngredient(Long ingredientId){
         Ingredient ingredient = ingredientRepository.findById(ingredientId)
                 .orElseThrow(()-> new ApplicationException(IngredientErrorCase.INGREDIENT_NOT_FOUND));
