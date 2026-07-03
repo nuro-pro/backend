@@ -19,7 +19,7 @@ public class UserService {
 
     @Transactional
     public UserResponse register(UserRegisterRequest request) {
-        User user = User.create(request.username(), request.password(), request.nickname(), request.age());
+        User user = User.create(request.nickname(), request.age());
         userRepository.save(user);
         return UserResponse.from(user);
     }
