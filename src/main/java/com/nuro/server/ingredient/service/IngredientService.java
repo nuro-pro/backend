@@ -21,7 +21,7 @@ public class IngredientService {
 
     //추가
     @Transactional
-    public void addIngredient(IngredientRequest request){
+    public Long addIngredient(IngredientRequest request){
         Ingredient ingredient = Ingredient.create(
                 request.korName(),
                 request.engName(),
@@ -34,6 +34,7 @@ public class IngredientService {
                 request.tip()
             );
         ingredientRepository.save(ingredient);
+        return ingredient.getId();
     }
 
     //전체 불러오기

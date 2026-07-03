@@ -32,8 +32,7 @@ public class IngredientController {
     @Operation(summary = "성분 추가", description = "ai가 추천할 수 있는 성분 목록을 추가합니다.")
     @PostMapping("/admin/add")
     public CommonResponse<?> addIngredients(@RequestBody @Valid IngredientRequest request){
-        ingredientService.addIngredient(request);
-        return CommonResponse.success();
+        return CommonResponse.success(ingredientService.addIngredient(request));
     }
 
     @Operation(summary = "성분 삭제", description = "ai가 추천할 수 있는 성분 목록을 삭제합니다.")
