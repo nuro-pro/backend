@@ -36,8 +36,7 @@ public class SurveyController {
     @Operation(summary = "설문 문항 추가 (관리자)")
     @PostMapping("/admin/questions/add")
     public CommonResponse<?> addQuestion(@RequestBody @Valid SurveyQuestionRequest request) {
-        surveyService.addQuestion(request);
-        return CommonResponse.success();
+        return CommonResponse.success(surveyService.addQuestion(request));
     }
 
     @Operation(summary = "설문 문항 삭제(비활성화) (관리자)")
@@ -71,8 +70,7 @@ public class SurveyController {
     @Operation(summary = "설문 응답 추가")
     @PostMapping("/admin/answers/add")
     public CommonResponse<?> addAnswer(@RequestBody @Valid SurveyAnswerRequest request) {
-        surveyService.addAnswer(request);
-        return CommonResponse.success();
+        return CommonResponse.success(surveyService.addAnswer(request));
     }
 
 }

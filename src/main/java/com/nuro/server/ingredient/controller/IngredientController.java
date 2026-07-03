@@ -22,7 +22,7 @@ public class IngredientController {
     private final IngredientService ingredientService;
 
     //===diagnosis에서 ingredients 목록 불러오기 ===
-    @Operation(summary = "전체 설문 응답 조회 (관리자)")
+    @Operation(summary = "전체 성분 조회 (관리자)")
     @GetMapping("/admin")
     public CommonResponse<List<IngredientResponse>> getAllIngredients() {
         return CommonResponse.success(ingredientService.getAllIngredients());

@@ -30,9 +30,10 @@ public class SurveyService {
     //===설문 문항
     //질문 추가
     @Transactional
-    public void addQuestion(SurveyQuestionRequest questionRequest){
+    public Long addQuestion(SurveyQuestionRequest questionRequest){
         SurveyQuestion surveyQuestion = SurveyQuestion.create(questionRequest.comment());
         surveyQuestionRepository.save(surveyQuestion);
+        return surveyQuestion.getId();
     }
 
     //질문 삭제 (비활성화)
@@ -54,11 +55,12 @@ public class SurveyService {
     // ===답변
     //답변 추가
     @Transactional
-    public void addAnswer(SurveyAnswerRequest request){
+    public Long addAnswer(SurveyAnswerRequest request){
         SurveyQuestion question = surveyQuestionRepository.findById(request.questionId())
                 .orElseThrow(()->new ApplicationException(SurveyErrorCase.SURVEY_QUESTION_NOT_FOUND));
         SurveyAnswer surveyAnswer = SurveyAnswer.create(question, request.comment());
         surveyAnswerRepository.save(surveyAnswer);
+        return surveyAnswer.getId();
     }
 
     //답변 get
