@@ -14,7 +14,7 @@ import java.util.UUID;
  *
  * S3 연동 필요
  */
-@Component
+//@Component
 public class LocalImageStorage implements ImageStorage {
 
     private static final String DIR = "uploads/diagnosis";

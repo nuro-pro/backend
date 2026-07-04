@@ -13,6 +13,7 @@ import com.nuro.server.diagnosis.exception.DiagnosisErrorCase;
 import com.nuro.server.diagnosis.repository.DiagnosisRepository;
 import com.nuro.server.diagnosis.repository.DiagnosisSurveyAnswerRepository;
 import com.nuro.server.diagnosis.storage.ImageStorage;
+import com.nuro.server.diagnosis.storage.S3PresignedUrlProvider;
 import com.nuro.server.diagnosis.util.ImageResizer;
 import com.nuro.server.global.exception.ApplicationException;
 import com.nuro.server.ingredient.entity.Ingredient;
@@ -62,6 +63,7 @@ public class DiagnosisService {
     private final SurveyAnswerRepository surveyAnswerRepository;
     private final UserRepository userRepository;
     private final IngredientRepository ingredientRepository;
+    private final S3PresignedUrlProvider s3PresignedUrlProvider;
 
     /**
      * 사진 업로드 → 검증 → 리사이즈 → 비전 LLM 호출 → 저장된 결과 영속화
@@ -127,8 +129,8 @@ public class DiagnosisService {
                         + peerScores.get("모공")
                         + peerScores.get("민감")
                         + peerScores.get("유분")) / 6;
-
-        return DiagnosisResponse.from(diagnosis, aiResult, peerScores, peerTotalScore);
+        String presignedUrl = s3PresignedUrlProvider.generateGetUrl(diagnosis.getImageUrl());
+        return DiagnosisResponse.from(diagnosis, aiResult, peerScores, peerTotalScore, user, presignedUrl);
     }
 
     // 진단 ID로 저장된 결과를 조회
@@ -138,9 +140,10 @@ public class DiagnosisService {
                 .orElseThrow(() -> new ApplicationException(DiagnosisErrorCase.DIAGNOSIS_NOT_FOUND));
 
         SkinDiagnosisResult result = fromJson(diagnosis.getRawResult());
-        UserResponse user = userService.getUser(diagnosis.getUserId());
+        User user = userRepository.findById(diagnosis.getId())
+                .orElseThrow(()-> new ApplicationException(UserErrorCase.USER_NOT_FOUND));
 
-        Map<String, Integer> peerScores = getAverageScore(user.age());
+        Map<String, Integer> peerScores = getAverageScore(user.getAge());
 
         int peerTotalScore =
                 (peerScores.get("수분")
@@ -150,7 +153,8 @@ public class DiagnosisService {
                         + peerScores.get("민감")
                         + peerScores.get("유분")) / 6;
 
-        return DiagnosisResponse.from(diagnosis, result, peerScores, peerTotalScore);
+        String presignedUrl = s3PresignedUrlProvider.generateGetUrl(diagnosis.getImageUrl());
+        return DiagnosisResponse.from(diagnosis, result, peerScores, peerTotalScore, user, presignedUrl);
     }
 
     // 평균값 계산

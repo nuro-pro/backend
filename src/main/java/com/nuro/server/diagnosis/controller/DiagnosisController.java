@@ -40,15 +40,4 @@ public class DiagnosisController {
     public CommonResponse<DiagnosisResponse> getDiagnosis(@PathVariable String sharedId) {
         return CommonResponse.success(diagnosisService.getDiagnosis(sharedId));
     }
-
-    private DiagnosisRequest parseSurvey(String surveyJson) {
-        if (surveyJson == null || surveyJson.isBlank()) {
-            throw new ApplicationException(GlobalErrorCase.INVALID_INPUT);
-        }
-        try {
-            return objectMapper.readValue(surveyJson, DiagnosisRequest.class);
-        } catch (Exception e) {
-            throw new ApplicationException(GlobalErrorCase.INVALID_INPUT, e);
-        }
-    }
 }

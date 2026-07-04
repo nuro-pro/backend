@@ -3,6 +3,7 @@ package com.nuro.server.diagnosis.dto.response;
 import com.nuro.server.diagnosis.client.SkinDiagnosisResult;
 import com.nuro.server.diagnosis.entity.Diagnosis;
 import com.nuro.server.ingredient.enums.Ingredients;
+import com.nuro.server.user.entity.User;
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,11 @@ import java.util.Objects;
 public record DiagnosisResponse(
         Long id,
         String shareId,
+
+        String userNickname,
+        String userImage,
+        Integer userAge,
+
         String skinType,
         Integer skinAge,
         Integer totalScore,
@@ -42,7 +48,7 @@ public record DiagnosisResponse(
 
     public record RoutineDto(String name, String product, String desc) {}
 
-    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result, Map<String, Integer> peerScores, Integer peerTotalScore) {
+    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result, Map<String, Integer> peerScores, Integer peerTotalScore, User user, String presignedImageUrl) {
 
         List<MetricDto> metricDtos = nullSafe(result.metrics()).stream()
                 .filter(Objects::nonNull)
@@ -77,6 +83,11 @@ public record DiagnosisResponse(
         return new DiagnosisResponse(
                 diagnosis.getId(),
                 diagnosis.getShareId(),
+
+                user.getNickname(),
+                presignedImageUrl,
+                user.getAge(),
+
                 result.skinType(),
                 result.skinAge(),
                 result.totalScore(),
