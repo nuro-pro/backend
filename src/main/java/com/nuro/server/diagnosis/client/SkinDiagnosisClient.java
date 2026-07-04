@@ -84,6 +84,8 @@ public class SkinDiagnosisClient {
                  이때 ingredients는 반드시 다음 목록에서만 3개를 선택하세요: %s
                  routine은 반드시 3단계로 구성하고, 실제 스킨케어 도포 순서대로 제시하세요.
                  각 단계의 product에는 위에서 선택한 ingredients 중 해당 단계에 어울리는 성분이 포함된 제품 유형을 추천하세요.
+                 이때 앞에서 선택된 ingredients의 나열 순서(a, b, c)와 실제 routine의 단계별 순서는 전혀 일치할 필요가 없습니다.
+                 오직 스킨케어의 올바른 도포 순서와 성분의 제형 궁합을 최우선으로 고려하여 유연하게 루틴을 구성하세요.
                 """.formatted(surveyText, ingredientNames);
 
         SkinDiagnosisResult result;

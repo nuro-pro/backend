@@ -8,6 +8,7 @@ import com.nuro.server.diagnosis.dto.request.DiagnosisRequest;
 import com.nuro.server.diagnosis.dto.response.DiagnosisResponse;
 import com.nuro.server.diagnosis.entity.Diagnosis;
 import com.nuro.server.diagnosis.entity.DiagnosisSurveyAnswer;
+import com.nuro.server.diagnosis.enums.DiagnosisStatus;
 import com.nuro.server.diagnosis.exception.DiagnosisErrorCase;
 import com.nuro.server.diagnosis.repository.DiagnosisRepository;
 import com.nuro.server.diagnosis.repository.DiagnosisSurveyAnswerRepository;
@@ -38,6 +39,8 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Slf4j
 @Service
@@ -115,7 +118,17 @@ public class DiagnosisService {
 
         diagnosisSurveyAnswerRepository.saveAll(diagnosisAnswers);
 
-        return DiagnosisResponse.from(diagnosis, aiResult, user.getAge());
+        Map<String, Integer> peerScores = getAverageScore(user.getAge());
+
+        int peerTotalScore =
+                (peerScores.get("수분")
+                        + peerScores.get("주름")
+                        + peerScores.get("색소")
+                        + peerScores.get("모공")
+                        + peerScores.get("민감")
+                        + peerScores.get("유분")) / 6;
+
+        return DiagnosisResponse.from(diagnosis, aiResult, peerScores, peerTotalScore);
     }
 
     // 진단 ID로 저장된 결과를 조회
@@ -126,7 +139,73 @@ public class DiagnosisService {
 
         SkinDiagnosisResult result = fromJson(diagnosis.getRawResult());
         UserResponse user = userService.getUser(diagnosis.getUserId());
-        return DiagnosisResponse.from(diagnosis, result, user.age());
+
+        Map<String, Integer> peerScores = getAverageScore(user.age());
+
+        int peerTotalScore =
+                (peerScores.get("수분")
+                        + peerScores.get("주름")
+                        + peerScores.get("색소")
+                        + peerScores.get("모공")
+                        + peerScores.get("민감")
+                        + peerScores.get("유분")) / 6;
+
+        return DiagnosisResponse.from(diagnosis, result, peerScores, peerTotalScore);
+    }
+
+    // 평균값 계산
+    private Map<String, Integer> getAverageScore(Integer userAge){
+        Integer startAge = userAge-5;
+        Integer endAge = userAge+5;
+        List<User> users= userRepository.findByAgeBetween(startAge, endAge);
+
+        if (users.isEmpty()) {
+            throw new ApplicationException(UserErrorCase.USER_NOT_FOUND);
+        }
+
+        List<Long> userIdList = users.stream().map(User::getId).toList();
+        List<Diagnosis> diagnoses = diagnosisRepository.findByUserIdInAndStatus(userIdList, DiagnosisStatus.COMPLETED);
+
+        int avgMoisture = (int) Math.round(diagnoses.stream()
+                .mapToInt(Diagnosis::getMoistureScore)
+                .average()
+                .orElse(0.0));
+
+        int avgWrinkle = (int) Math.round(diagnoses.stream()
+                .mapToInt(Diagnosis::getWrinkleScore)
+                .average()
+                .orElse(0.0));
+
+        int avgPigment = (int) Math.round(diagnoses.stream()
+                .mapToInt(Diagnosis::getPigmentScore)
+                .average()
+                .orElse(0.0));
+
+        int avgPore = (int) Math.round(diagnoses.stream()
+                .mapToInt(Diagnosis::getPoreScore)
+                .average()
+                .orElse(0.0));
+
+        int avgSensitive = (int) Math.round(diagnoses.stream()
+                .mapToInt(Diagnosis::getSensitiveScore)
+                .average()
+                .orElse(0.0));
+
+        int avgOil = (int) Math.round(diagnoses.stream()
+                .mapToInt(Diagnosis::getOilScore)
+                .average()
+                .orElse(0.0));
+
+        return new HashMap<>() {
+            {
+                put("수분", avgMoisture);
+                put("주름", avgWrinkle);
+                put("색소", avgPigment);
+                put("모공", avgPore);
+                put("민감", avgSensitive);
+                put("유분", avgOil);
+            }
+        };
     }
 
     private void validateImage(MultipartFile image) {

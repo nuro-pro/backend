@@ -2,10 +2,10 @@ package com.nuro.server.diagnosis.dto.response;
 
 import com.nuro.server.diagnosis.client.SkinDiagnosisResult;
 import com.nuro.server.diagnosis.entity.Diagnosis;
-import com.nuro.server.diagnosis.enums.AgeBand;
 import com.nuro.server.ingredient.enums.Ingredients;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -41,13 +41,11 @@ public record DiagnosisResponse(
 
     public record RoutineDto(String name, String product, String desc) {}
 
-    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result, Integer peerAge) {
-        // 또래 평균은 사용자의 실제 나이(온보딩 입력) 기준으로 백엔드에서 결정
-        AgeBand peerBand = AgeBand.of(peerAge);
+    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result, Map<String, Integer> peerScores, Integer peerTotalScore) {
 
         List<MetricDto> metricDtos = nullSafe(result.metrics()).stream()
                 .filter(Objects::nonNull)
-                .map(m -> new MetricDto(m.name(), m.score(), peerBand.peerScoreOf(m.name())))
+                .map(m -> new MetricDto(m.name(), m.score(), getAverageScoreByName(m.name(), peerScores)))
                 .toList();
 
         // 추천 성분은 반드시 Ingredients 카드(18종) 안에서만
@@ -80,7 +78,7 @@ public record DiagnosisResponse(
                 result.skinType(),
                 result.skinAge(),
                 result.totalScore(),
-                peerBand.getPeerTotalScore(),
+                peerTotalScore,
                 result.totalDesc(),
                 result.summary(),
                 metricDtos,
@@ -88,6 +86,18 @@ public record DiagnosisResponse(
                 routineDtos,
                 result.disclaimer()
         );
+    }
+
+    private static Integer getAverageScoreByName(String name, Map<String, Integer> peerScore){
+        return switch (name) {
+            case "수분" -> peerScore.get("수분");
+            case "주름" -> peerScore.get("주름");
+            case "색소" -> peerScore.get("색소");
+            case "모공" -> peerScore.get("모공");
+            case "민감" -> peerScore.get("민감");
+            case "유분" -> peerScore.get("유분");
+            default -> throw new IllegalStateException("잘못된 형식입니다.");
+        };
     }
 
     private static <T> List<T> nullSafe(List<T> list) {
