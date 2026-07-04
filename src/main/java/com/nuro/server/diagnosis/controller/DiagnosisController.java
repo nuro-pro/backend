@@ -36,9 +36,9 @@ public class DiagnosisController {
     }
 
     @Operation(summary = "진단 결과 조회", description = "진단 ID로 결과(피부타입/지표/종합점수)를 조회합니다.")
-    @GetMapping("/{diagnosisId}")
-    public CommonResponse<DiagnosisResponse> getDiagnosis(@PathVariable Long diagnosisId) {
-        return CommonResponse.success(diagnosisService.getDiagnosis(diagnosisId));
+    @GetMapping("/{sharedId}")
+    public CommonResponse<DiagnosisResponse> getDiagnosis(@PathVariable String sharedId) {
+        return CommonResponse.success(diagnosisService.getDiagnosis(sharedId));
     }
 
     private DiagnosisRequest parseSurvey(String surveyJson) {

@@ -1,5 +1,6 @@
 package com.nuro.server.diagnosis.entity;
 
+import com.aventrix.jnanoid.jnanoid.NanoIdUtils;
 import com.nuro.server.diagnosis.client.SkinDiagnosisResult;
 import com.nuro.server.diagnosis.enums.DiagnosisStatus;
 import com.nuro.server.global.entity.BaseEntity;
@@ -33,6 +34,9 @@ public class Diagnosis extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String shareId;
 
     @Column(nullable = false)
     private Long userId;
@@ -95,6 +99,7 @@ public class Diagnosis extends BaseEntity {
         this.userId = userId;
         this.imageUrl = imageUrl;
         this.status = status;
+        this.shareId = NanoIdUtils.randomNanoId();
     }
 
     // 분석 시작 시점 생성

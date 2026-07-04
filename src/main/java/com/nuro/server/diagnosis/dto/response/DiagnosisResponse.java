@@ -14,6 +14,7 @@ import java.util.Objects;
  */
 public record DiagnosisResponse(
         Long id,
+        String shareId,
         String skinType,
         Integer skinAge,
         Integer totalScore,
@@ -75,6 +76,7 @@ public record DiagnosisResponse(
 
         return new DiagnosisResponse(
                 diagnosis.getId(),
+                diagnosis.getShareId(),
                 result.skinType(),
                 result.skinAge(),
                 result.totalScore(),

@@ -132,8 +132,8 @@ public class DiagnosisService {
     }
 
     // 진단 ID로 저장된 결과를 조회
-    public DiagnosisResponse getDiagnosis(Long diagnosisId) {
-        Diagnosis diagnosis = diagnosisRepository.findById(diagnosisId)
+    public DiagnosisResponse getDiagnosis(String sharedId) {
+        Diagnosis diagnosis = diagnosisRepository.findByShareId(sharedId)
                 .filter(d -> !d.isDeleted())
                 .orElseThrow(() -> new ApplicationException(DiagnosisErrorCase.DIAGNOSIS_NOT_FOUND));
 

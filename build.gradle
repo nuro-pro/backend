@@ -76,6 +76,9 @@ dependencies {
     // Devtools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+    //nanoid
+    implementation 'com.aventrix.jnanoid:jnanoid:2.0.0'
+
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
