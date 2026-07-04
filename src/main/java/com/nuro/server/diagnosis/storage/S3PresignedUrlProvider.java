@@ -25,7 +25,7 @@ public class S3PresignedUrlProvider {
                 .build();
 
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofMinutes(30)) // 30분간 유효
+                .signatureDuration(Duration.ofDays(7)) // 30분간 유효
                 .getObjectRequest(getRequest)
                 .build();
 
