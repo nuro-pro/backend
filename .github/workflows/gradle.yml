@@ -1,0 +1,65 @@
+name: Java CI/CD with Docker & EC2
+
+on:
+  push:
+    branches: [ "main" ] # 배포 대상 브랜치 (필요시 master 등으로 수정)
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 소스 코드 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. JDK 설정 (프로젝트 자바 버전에 맞게 수정, 예: 17 또는 21)
+      - name: Set up JDK 17
+        uses: actions/actions-setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 3. Gradle 빌드 (테스트 제외 시 -x test 추가)
+      - name: Build with Gradle
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean build -x test
+
+      # 4. Docker Hub 로그인 (등록해두신 Secret 사용)
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      # 5. Docker 이미지 빌드 및 Docker Hub 푸시
+      # PROJECT_NAME secret도 등록되어 있으니 그대로 활용합니다.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
+
+      # 6. EC2에 원격 접속하여 Docker 컨테이너 실행
+      # (등록하신 EX2_USERNAME 오타 주의: EX2_USERNAME 그대로 매핑했습니다)
+      - name: SSH Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            # 기존에 실행 중인 동일 이미지의 컨테이너가 있다면 중단 및 삭제
+            docker stop ${{ secrets.PROJECT_NAME }} || true
+            docker rm ${{ secrets.PROJECT_NAME }} || true
+            
+            # 최신 이미지 풀 다운 및 실행
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
+            docker run -d --name ${{ secrets.PROJECT_NAME }} -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
