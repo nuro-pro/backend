@@ -1,5 +1,6 @@
 package com.nuro.server.diagnosis.storage;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
@@ -20,6 +21,8 @@ import java.util.UUID;
 public class LocalImageStorage implements ImageStorage {
 
     private static final String DIR = "uploads/diagnosis";
+    @Value("${app.local.base-url:http://localhost:8080}")
+    private String baseUrl;
 
     @Override
     public String store(byte[] bytes, MimeType mimeType) {
@@ -41,5 +44,10 @@ public class LocalImageStorage implements ImageStorage {
         } catch (IOException e) {
             throw new RuntimeException("로컬 이미지 저장 실패", e);
         }
+    }
+
+    @Override
+    public String generateGetUrl(String key){
+        return baseUrl + key;
     }
 }
