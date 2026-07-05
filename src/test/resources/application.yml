@@ -15,3 +15,12 @@ spring:
         api-key: test-dummy-key
     anthropic:
       api-key: test-dummy-key
+
+cloud:
+  aws:
+    credentials:
+      access-key: test-dummy-key
+      secret-key: test-dummy-secret
+    region: ap-northeast-2
+    s3:
+      bucket: test-bucket

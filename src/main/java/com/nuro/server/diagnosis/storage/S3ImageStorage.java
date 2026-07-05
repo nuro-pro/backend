@@ -15,7 +15,7 @@ import java.util.UUID;
 /**
  * S3 저장 구현 -> 운영 환경에서 사용
  */
-//@Component
+@Component
 @Profile("prod")
 @RequiredArgsConstructor
 public class S3ImageStorage implements ImageStorage {
