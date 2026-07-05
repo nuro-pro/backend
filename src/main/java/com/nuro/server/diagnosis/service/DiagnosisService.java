@@ -136,11 +136,10 @@ public class DiagnosisService {
     // 진단 ID로 저장된 결과를 조회
     public DiagnosisResponse getDiagnosis(String sharedId) {
         Diagnosis diagnosis = diagnosisRepository.findByShareId(sharedId)
-                .filter(d -> !d.isDeleted())
                 .orElseThrow(() -> new ApplicationException(DiagnosisErrorCase.DIAGNOSIS_NOT_FOUND));
 
         SkinDiagnosisResult result = fromJson(diagnosis.getRawResult());
-        User user = userRepository.findById(diagnosis.getId())
+        User user = userRepository.findById(diagnosis.getUserId())
                 .orElseThrow(()-> new ApplicationException(UserErrorCase.USER_NOT_FOUND));
 
         Map<String, Integer> peerScores = getAverageScore(user.getAge());
