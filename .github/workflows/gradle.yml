@@ -46,8 +46,18 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
 
-      # 6. EC2에 원격 접속하여 Docker 컨테이너 실행
-      # (등록하신 EX2_USERNAME 오타 주의: EX2_USERNAME 그대로 매핑했습니다)
+      # 6. docker-compose.yml을 EC2로 전송
+      - name: Copy docker-compose.yml to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_KEY }}
+          port: ${{ secrets.PORT }}
+          source: "docker-compose.yml"
+          target: "/home/${{ secrets.EC2_USERNAME }}/app"
+
+      # 7. EC2에서 docker compose로 배포
       - name: SSH Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -55,11 +65,16 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_KEY }}
           port: ${{ secrets.PORT }}
+          envs: DOCKERHUB_USERNAME,PROJECT_NAME,DB_PASSWORD,GEMINI_API_KEY,ANTHROPIC_API_KEY,AWS_ACCESS_KEY,AWS_SECRET_KEY
           script: |
-            # 기존에 실행 중인 동일 이미지의 컨테이너가 있다면 중단 및 삭제
-            docker stop ${{ secrets.PROJECT_NAME }} || true
-            docker rm ${{ secrets.PROJECT_NAME }} || true
-            
-            # 최신 이미지 풀 다운 및 실행
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
-            docker run -d --name ${{ secrets.PROJECT_NAME }} -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.PROJECT_NAME }}:latest
+            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            export PROJECT_NAME=${{ secrets.PROJECT_NAME }}
+            export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            export ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+            export AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
+            export AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
+
+            cd /home/${{ secrets.EC2_USERNAME }}/app
+            docker compose pull app
+            docker compose up -d
