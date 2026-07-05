@@ -37,7 +37,7 @@ public class Ingredient extends BaseEntity {
     @Column(nullable = false, length = 20)
     private String dataLevel;
 
-    @Column(nullable = false, length = 500)
+    @Column(name = "\"desc\"", nullable = false, length = 500)
     private String desc;
 
     @ElementCollection
