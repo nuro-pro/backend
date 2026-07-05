@@ -78,5 +78,9 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             cd /home/${{ secrets.EC2_USERNAME }}/app
+
+            # 혹시 남아있는 동일 이름 컨테이너 정리 (compose가 아닌 방식으로 만들어진 것 대비)
+            docker rm -f ${{ secrets.PROJECT_NAME }} || true
+
             docker compose pull app
             docker compose up -d
