@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -19,7 +21,7 @@ public class UserService {
 
     @Transactional
     public UserResponse register(UserRegisterRequest request) {
-        User user = User.create(request.username(), request.password(), request.nickname(), request.age());
+        User user = User.create(request.nickname(), request.age());
         userRepository.save(user);
         return UserResponse.from(user);
     }

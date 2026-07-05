@@ -30,9 +30,10 @@ public class SurveyService {
     //===설문 문항
     //질문 추가
     @Transactional
-    public void addQuestion(SurveyQuestionRequest questionRequest){
+    public Long addQuestion(SurveyQuestionRequest questionRequest){
         SurveyQuestion surveyQuestion = SurveyQuestion.create(questionRequest.comment());
         surveyQuestionRepository.save(surveyQuestion);
+        return surveyQuestion.getId();
     }
 
     //질문 삭제 (비활성화)
@@ -51,31 +52,15 @@ public class SurveyService {
                 .toList();
     }
 
-
-
-
     // ===답변
     //답변 추가
     @Transactional
-    public void addAnswer(SurveyAnswerRequest request){
+    public Long addAnswer(SurveyAnswerRequest request){
         SurveyQuestion question = surveyQuestionRepository.findById(request.questionId())
                 .orElseThrow(()->new ApplicationException(SurveyErrorCase.SURVEY_QUESTION_NOT_FOUND));
-        // 관리자 직접 추가 응답은 특정 사용자에 귀속되지 않음(userId null)
-        SurveyAnswer surveyAnswer = SurveyAnswer.create(question, request.comment(), null);
+        SurveyAnswer surveyAnswer = SurveyAnswer.create(question, request.comment());
         surveyAnswerRepository.save(surveyAnswer);
-    }
-
-    // 진단 플로우 설문 응답을 사용자(userId)에 귀속해 저장
-    @Transactional
-    public void saveDiagnosisAnswers(Long userId, Map<DiagnosisSurveyQuestion, String> answers) {
-        answers.forEach((question, comment) -> {
-            if (comment == null || comment.isBlank()) {
-                return;
-            }
-            SurveyQuestion surveyQuestion = surveyQuestionRepository.findByCode(question.code())
-                    .orElseThrow(() -> new ApplicationException(SurveyErrorCase.SURVEY_QUESTION_NOT_FOUND));
-            surveyAnswerRepository.save(SurveyAnswer.create(surveyQuestion, comment, userId));
-        });
+        return surveyAnswer.getId();
     }
 
     //답변 get

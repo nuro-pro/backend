@@ -2,21 +2,33 @@ package com.nuro.server.ingredient.dto.response;
 
 import com.nuro.server.ingredient.entity.Ingredient;
 
-/**
- * 추천 성분 응답
- */
+import java.util.List;
+
 public record IngredientResponse(
-        Long id,
-        String name,
-        String description,
-        String matchReason   // 이 진단 결과에 추천되는 이유 (TODO: 추천 로직에서 채움)
+        //관리자 페이지 ingredient 목록에 렌더링할 항목 가려내야함
+        Long ingredientId,
+        String korName,
+        String engName,
+        Integer ewgGrade,
+        String riskLevel,
+        String dataLevel,
+        String desc,
+        List<String> effects,
+        String howToUse,
+        String tip
 ) {
-    public static IngredientResponse from(Ingredient ingredient, String matchReason) {
+    public static IngredientResponse from(Ingredient ingredient){
         return new IngredientResponse(
                 ingredient.getId(),
-                ingredient.getName(),
-                ingredient.getDescription(),
-                matchReason
+                ingredient.getKorName(),
+                ingredient.getEngName(),
+                ingredient.getEwgGrade(),
+                ingredient.getRiskLevel(),
+                ingredient.getDataLevel(),
+                ingredient.getDesc(),
+                List.copyOf(ingredient.getEffects()),
+                ingredient.getHowToUse(),
+                ingredient.getTip()
         );
     }
 }

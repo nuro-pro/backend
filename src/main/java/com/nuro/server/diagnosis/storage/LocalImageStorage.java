@@ -1,5 +1,6 @@
 package com.nuro.server.diagnosis.storage;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
 
@@ -15,6 +16,7 @@ import java.util.UUID;
  * S3 연동 필요
  */
 @Component
+@Profile("local")
 public class LocalImageStorage implements ImageStorage {
 
     private static final String DIR = "uploads/diagnosis";

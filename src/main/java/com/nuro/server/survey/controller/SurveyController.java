@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/surveys")
-@Tag(name = "설문", description = "피부 설문 문항 조회 및 응답 제출")
+@Tag(name = "설문 문항 관리")
 public class SurveyController {
 
     private final SurveyService surveyService;
@@ -26,19 +26,17 @@ public class SurveyController {
     // ===== 일반 유저용 =====
 
     @Operation(summary = "문항-응답 전체 구조 조회 (일반 유저)")
-    @GetMapping("/survey")
+    @GetMapping
     public CommonResponse<List<SurveyQuestionWithAnswerResponse>> getSurveyFull() {
         return CommonResponse.success(surveyService.getSurveyFull());
     }
-
 
     // ===== 관리자용 =====
     // ===== 설문 문항
     @Operation(summary = "설문 문항 추가 (관리자)")
     @PostMapping("/admin/questions/add")
     public CommonResponse<?> addQuestion(@RequestBody @Valid SurveyQuestionRequest request) {
-        surveyService.addQuestion(request);
-        return CommonResponse.success();
+        return CommonResponse.success(surveyService.addQuestion(request));
     }
 
     @Operation(summary = "설문 문항 삭제(비활성화) (관리자)")
@@ -72,8 +70,7 @@ public class SurveyController {
     @Operation(summary = "설문 응답 추가")
     @PostMapping("/admin/answers/add")
     public CommonResponse<?> addAnswer(@RequestBody @Valid SurveyAnswerRequest request) {
-        surveyService.addAnswer(request);
-        return CommonResponse.success();
+        return CommonResponse.success(surveyService.addAnswer(request));
     }
 
 }

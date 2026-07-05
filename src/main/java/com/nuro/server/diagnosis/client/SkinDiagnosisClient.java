@@ -1,8 +1,10 @@
 package com.nuro.server.diagnosis.client;
 
+import com.nuro.server.diagnosis.dto.request.DiagnosisRequest;
 import com.nuro.server.diagnosis.exception.DiagnosisErrorCase;
 import com.nuro.server.global.exception.ApplicationException;
 import com.nuro.server.ingredient.enums.Ingredients;
+import com.nuro.server.survey.entity.SurveyAnswer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.content.Media;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -29,25 +32,19 @@ public class SkinDiagnosisClient {
      */
     public SkinDiagnosisResult diagnose(byte[] imageBytes,
                                         MimeType mimeType,
-                                        String skinCondition,
-                                        String skinConcern,
-                                        String skinSensitivity) {
+                                        String surveyText,
+                                        String ingredientNames) {
         ChatClient.Builder builder = chatClientBuilderProvider.getIfAvailable();
         if (builder == null) {
             // AI 비활성(none) 또는 모델 미구성
             throw new ApplicationException(DiagnosisErrorCase.LLM_CALL_FAILED);
         }
-        String ingredientNames = Arrays.stream(Ingredients.values())
-                .map(Ingredients::getKorName)
-                .collect(Collectors.joining(", "));
 
         String prompt = """
                 당신은 전문 피부과 AI 분석가입니다.
                 아래 사용자 정보와 피부 사진을 바탕으로 피부를 분석해주세요.
                 [사용자 설문 응답]
-                - 세안 후 아무것도 바르지 않았을 때 피부 상태: %s
-                - 주요 피부 고민: %s
-                - 새로운 화장품 사용시 피부 반응: %s
+                %s
                 
                 [분석 기준]
                 - 수분: 피부의 수분 보유량과 속건조 여부
@@ -87,7 +84,9 @@ public class SkinDiagnosisClient {
                  이때 ingredients는 반드시 다음 목록에서만 3개를 선택하세요: %s
                  routine은 반드시 3단계로 구성하고, 실제 스킨케어 도포 순서대로 제시하세요.
                  각 단계의 product에는 위에서 선택한 ingredients 중 해당 단계에 어울리는 성분이 포함된 제품 유형을 추천하세요.
-                """.formatted(skinCondition, skinConcern, skinSensitivity, ingredientNames);
+                 이때 앞에서 선택된 ingredients의 나열 순서(a, b, c)와 실제 routine의 단계별 순서는 전혀 일치할 필요가 없습니다.
+                 오직 스킨케어의 올바른 도포 순서와 성분의 제형 궁합을 최우선으로 고려하여 유연하게 루틴을 구성하세요.
+                """.formatted(surveyText, ingredientNames);
 
         SkinDiagnosisResult result;
         try {

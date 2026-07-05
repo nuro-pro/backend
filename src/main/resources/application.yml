@@ -15,7 +15,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
   ai:
     model:
       chat: google-genai
@@ -43,6 +42,15 @@ management:
     web:
       exposure:
         include: health,info
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:test-dummy-key}
+      secret-key: ${AWS_SECRET_KEY:test-dummy-secret}
+    region: ap-northeast-2
+    s3:
+      bucket: nuro-images-954976321892-ap-northeast-2-an
 
 server:
   port: 8080

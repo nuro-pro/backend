@@ -15,11 +15,12 @@ public record UserRegisterRequest(
         @Size(max = 30, message = "닉네임은 30자 이하여야 합니다.")
         String nickname,
 
-        @Size(max=15, message = "아이디는 15자 이하여야 합니다.")
-        String username,
+        //회원가입 기능은 jwt 공부하고 나중에...
+        //@Size(max=15, message = "아이디는 15자 이하여야 합니다.")
+        //String username,
 
-        @Size(max=30, message = "비밀번호는 30자 이하여야 합니다.")
-        String password,
+        //@Size(max=30, message = "비밀번호는 30자 이하여야 합니다.")
+        //String password,
 
         @NotNull(message = "나이를 입력해주세요.")
         @Min(value = 1, message = "나이는 1 이상이어야 합니다.")

@@ -33,25 +33,18 @@ public class SurveyAnswer extends BaseEntity {
     @Column(nullable = false)
     private String comment;
 
-    // 응답한 사용자
-    @Column(name = "user_id")
-    private Long userId;
-
     private SurveyAnswer(
             SurveyQuestion question,
-            String comment,
-            Long userId
+            String comment
     ) {
         this.question = question;
         this.comment = comment;
-        this.userId = userId;
     }
 
     public static SurveyAnswer create(
             SurveyQuestion question,
-            String comment,
-            Long userId
+            String comment
     ) {
-        return new SurveyAnswer(question, comment, userId);
+        return new SurveyAnswer(question, comment);
     }
 }

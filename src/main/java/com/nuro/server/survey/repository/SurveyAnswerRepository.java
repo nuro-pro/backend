@@ -11,5 +11,5 @@ public interface SurveyAnswerRepository extends JpaRepository<SurveyAnswer, Long
     List<SurveyAnswer> findAllByDeletedAtIsNullOrderById();
 
     // 특정 사용자의 설문 응답
-    List<SurveyAnswer> findAllByDeletedAtIsNullAndUserIdOrderById(Long userId);
+    //List<SurveyAnswer> findAllByDeletedAtIsNullAndUserIdOrderById(Long userId);
 }

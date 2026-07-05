@@ -23,10 +23,6 @@ public class SurveyQuestion extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 안정적 식별용 코드
-    @Column(length = 50, unique = true)
-    private String code;
-
     //질문 내용
     @Column(nullable = false, length = 200)
     private String content;
@@ -34,17 +30,11 @@ public class SurveyQuestion extends BaseEntity {
     @OneToMany(mappedBy = "question", fetch = FetchType.LAZY)
     private List<SurveyAnswer> answers = new ArrayList<>();
 
-    private SurveyQuestion(String code, String content) {
-        this.code = code;
+    private SurveyQuestion(String content) {
         this.content = content;
     }
 
     public static SurveyQuestion create(String content) {
-        return new SurveyQuestion(null, content);
-    }
-
-    // 코드가 부여된 고정 문항(진단 설문 등) 생성용
-    public static SurveyQuestion create(String code, String content) {
-        return new SurveyQuestion(code, content);
+        return new SurveyQuestion(content);
     }
 }
