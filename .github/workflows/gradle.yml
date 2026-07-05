@@ -3,6 +3,7 @@ name: Java CI/CD with Docker & EC2
 on:
   push:
     branches: [ "main", "develop" ] # 배포 대상 브랜치 (필요시 master 등으로 수정)
+  workflow_dispatch: 
 
 permissions:
   contents: read
