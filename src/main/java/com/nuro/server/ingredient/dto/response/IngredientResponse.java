@@ -26,7 +26,7 @@ public record IngredientResponse(
                 ingredient.getRiskLevel(),
                 ingredient.getDataLevel(),
                 ingredient.getDesc(),
-                List.copyOf(ingredient.getEffects()),
+                ingredient.getEffects(),
                 ingredient.getHowToUse(),
                 ingredient.getTip()
         );
