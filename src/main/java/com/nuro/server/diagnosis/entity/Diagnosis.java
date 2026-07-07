@@ -65,9 +65,6 @@ public class Diagnosis extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String summary;
 
-    @Column(columnDefinition = "TEXT")
-    private String disclaimer;
-
     // LLM 원문 응답(JSON) 보관
     @Column(columnDefinition = "TEXT")
     private String rawResult;
@@ -117,7 +114,6 @@ public class Diagnosis extends BaseEntity {
         this.totalScore = result.totalScore();
         this.summary = result.summary();
         this.totalDesc = result.totalDesc();
-        this.disclaimer = result.disclaimer();
         this.rawResult = rawResult;
 
         applyMetricScores(result.metrics());
