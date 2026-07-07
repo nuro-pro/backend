@@ -13,7 +13,6 @@ import com.nuro.server.diagnosis.exception.DiagnosisErrorCase;
 import com.nuro.server.diagnosis.repository.DiagnosisRepository;
 import com.nuro.server.diagnosis.repository.DiagnosisSurveyAnswerRepository;
 import com.nuro.server.diagnosis.storage.ImageStorage;
-import com.nuro.server.diagnosis.storage.S3PresignedUrlProvider;
 import com.nuro.server.diagnosis.util.ImageResizer;
 import com.nuro.server.global.exception.ApplicationException;
 import com.nuro.server.ingredient.entity.Ingredient;
@@ -63,7 +62,6 @@ public class DiagnosisService {
     private final SurveyAnswerRepository surveyAnswerRepository;
     private final UserRepository userRepository;
     private final IngredientRepository ingredientRepository;
-    private final S3PresignedUrlProvider s3PresignedUrlProvider;
 
     /**
      * 사진 업로드 → 검증 → 리사이즈 → 비전 LLM 호출 → 저장된 결과 영속화
@@ -129,7 +127,7 @@ public class DiagnosisService {
                         + peerScores.get("모공")
                         + peerScores.get("민감")
                         + peerScores.get("유분")) / 6;
-        String presignedUrl = s3PresignedUrlProvider.generateGetUrl(diagnosis.getImageUrl());
+        String presignedUrl = imageStorage.generateGetUrl(diagnosis.getImageUrl());
         return DiagnosisResponse.from(diagnosis, aiResult, peerScores, peerTotalScore, user, presignedUrl);
     }
 
@@ -152,7 +150,7 @@ public class DiagnosisService {
                         + peerScores.get("민감")
                         + peerScores.get("유분")) / 6;
 
-        String presignedUrl = s3PresignedUrlProvider.generateGetUrl(diagnosis.getImageUrl());
+        String presignedUrl = imageStorage.generateGetUrl(diagnosis.getImageUrl());
         return DiagnosisResponse.from(diagnosis, result, peerScores, peerTotalScore, user, presignedUrl);
     }
 

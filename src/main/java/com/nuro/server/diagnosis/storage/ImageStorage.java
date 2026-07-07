@@ -16,4 +16,5 @@ public interface ImageStorage {
      * @return 저장 위치 식별자
      */
     String store(byte[] bytes, MimeType mimeType);
+    String generateGetUrl(String key);
 }
