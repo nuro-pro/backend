@@ -33,6 +33,13 @@ spring:
           model: claude-sonnet-4-6
           max-tokens: 2048
 
+solapi:
+  api-key: ${SOLAPI_API_KEY}
+  api-secret: ${SOLAPI_API_SECRET}
+  sender: ${SOLAPI_SENDER}          # 등록한 발신번호, 01012345678 형식
+app:
+  result-base-url: https://nuro-project.vercel.app/result
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
