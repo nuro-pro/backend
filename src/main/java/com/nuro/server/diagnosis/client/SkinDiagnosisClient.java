@@ -1,11 +1,13 @@
 package com.nuro.server.diagnosis.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nuro.server.diagnosis.dto.request.DiagnosisRequest;
 import com.nuro.server.diagnosis.exception.DiagnosisErrorCase;
 import com.nuro.server.global.exception.ApplicationException;
 import com.nuro.server.ingredient.enums.Ingredients;
 import com.nuro.server.survey.entity.SurveyAnswer;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.content.Media;
 import org.springframework.beans.factory.ObjectProvider;
@@ -21,9 +23,13 @@ import java.util.stream.Collectors;
  * 비전 LLM 호출 래퍼
  * 모델 전환은 코드가 아니라 설정({@code spring.ai.model.chat})으로 한다
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class SkinDiagnosisClient {
+
+    // LLM이 비결정적으로 깨진 JSON을 뱉는 경우가 있어 파싱/호출 실패 시 재시도
+    private static final int MAX_ATTEMPTS = 2;
 
     private final ObjectProvider<ChatClient.Builder> chatClientBuilderProvider;
 
@@ -99,38 +105,69 @@ public class SkinDiagnosisClient {
                  오직 스킨케어의 올바른 도포 순서와 성분의 제형 궁합을 최우선으로 고려하여 유연하게 루틴을 구성하세요.
                 """.formatted(surveyText, ingredientNames);
 
-        SkinDiagnosisResult result;
-        try {
-            result = builder.build()
-                    .prompt()
-                    .system(SYSTEM_PROMPT)
-                    .user(userSpec -> userSpec
-                            .text(prompt)
-                            .media(mimeType, new ByteArrayResource(imageBytes))
-                    )
-                    .call()
-                    .entity(SkinDiagnosisResult.class);
-        } catch (ApplicationException e) {
-            throw e;
-        } catch (Exception e) {
-            // 호출 자체 실패(네트워크/인증/타임아웃 등)
-            throw new ApplicationException(DiagnosisErrorCase.LLM_CALL_FAILED, e);
+        Exception lastError = null;
+        boolean parseFailure = false;
+
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                SkinDiagnosisResult result = builder.build()
+                        .prompt()
+                        .system(SYSTEM_PROMPT)
+                        .user(userSpec -> userSpec
+                                .text(prompt)
+                                .media(mimeType, new ByteArrayResource(imageBytes))
+                        )
+                        .call()
+                        .entity(SkinDiagnosisResult.class);
+
+                if (isComplete(result)) {
+                    return result;
+                }
+                // 매핑은 됐지만 핵심 필드가 비어 계약 미충족 → 남은 시도 재요청
+                parseFailure = true;
+                lastError = null;
+                log.warn("진단 LLM 응답 필수 필드 누락 (시도 {}/{})", attempt, MAX_ATTEMPTS);
+            } catch (Exception e) {
+                // 깨진 JSON 파싱 실패(비결정적)와 호출 실패(네트워크/인증/타임아웃) 구분
+                lastError = e;
+                parseFailure = isParseError(e);
+                log.warn("진단 LLM 응답 처리 실패 (시도 {}/{}): {}", attempt, MAX_ATTEMPTS, e.getMessage());
+            }
         }
 
-        // 구조화 매핑은 됐지만 핵심 필드가 비어 계약을 만족하지 못하는 경우
-        if (result == null
-                || result.totalScore() == null
-                || result.metrics() == null
-                || result.metrics().isEmpty()) {
-            throw new ApplicationException(DiagnosisErrorCase.LLM_RESPONSE_INVALID);
+        // 모든 시도 실패: 파싱/필드 문제는 LLM_RESPONSE_INVALID(502), 호출 자체 문제는 LLM_CALL_FAILED
+        if (parseFailure) {
+            throw new ApplicationException(DiagnosisErrorCase.LLM_RESPONSE_INVALID, lastError);
         }
-        return result;
+        throw new ApplicationException(DiagnosisErrorCase.LLM_CALL_FAILED, lastError);
+    }
+
+    // 구조화 매핑은 됐지만 핵심 필드가 비어 계약을 만족하지 못하는지 검증
+    private boolean isComplete(SkinDiagnosisResult result) {
+        return result != null
+                && result.totalScore() != null
+                && result.metrics() != null
+                && !result.metrics().isEmpty();
+    }
+
+    // 예외 원인 체인에 Jackson 파싱 오류가 있으면 응답(JSON) 문제로 간주
+    private boolean isParseError(Throwable t) {
+        while (t != null) {
+            if (t instanceof JsonProcessingException) {
+                return true;
+            }
+            t = t.getCause();
+        }
+        return false;
     }
 
     private static final String SYSTEM_PROMPT = """
             당신은 사용자의 피부 사진과 설문을 바탕으로 피부 상태를 분석해 주는 AI 도우미입니다.
             - 결과는 참고용이며 의학적 진단이 아닙니다. 질병 진단·치료를 단정하지 마세요.
             - 반드시 요청된 JSON 스키마만 출력하고, 그 외 설명 문장은 포함하지 마세요.
+            - 스키마에 정의되지 않은 키(예: modify 등)를 절대 추가하지 마세요.
+            - 출력은 파싱 가능한 유효한 JSON 하나여야 합니다. 각 key-value는 콤마로 정확히 구분하고,
+              마지막 항목 뒤에는 콤마를 넣지 마세요. 코드블록(```)이나 주석, 여는 중괄호 앞뒤 설명을 넣지 마세요.
             - 모든 점수는 0~100 사이 정수로만 답하세요.
             - 사용자에게 노출되는 모든 설명 문구(totalDesc, summary, metrics의 comment, routine의 desc)는
               친근한 해요체("~해요", "~보여요", "~필요해요")로 작성하세요.
