@@ -18,7 +18,7 @@ public record SkinDiagnosisResult(
         List<RoutineResult> routine,
         String disclaimer   // "참고용이며 의학적 진단이 아님"
 ) {
-    public record MetricResult(String name, Integer score) {}
+    public record MetricResult(String name, Integer score, String comment) {}
 
     public record IngredientResult(String name) {}
 

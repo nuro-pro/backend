@@ -32,7 +32,7 @@ public record DiagnosisResponse(
         List<RoutineDto> routine,
         String disclaimer
 ) {
-    public record MetricDto(String name, Integer score, Integer peerScore) {}
+    public record MetricDto(String name, Integer score, Integer peerScore, String comment) {}
 
     public record IngredientDto(
             String korName,
@@ -52,7 +52,7 @@ public record DiagnosisResponse(
 
         List<MetricDto> metricDtos = nullSafe(result.metrics()).stream()
                 .filter(Objects::nonNull)
-                .map(m -> new MetricDto(m.name(), m.score(), getAverageScoreByName(m.name(), peerScores)))
+                .map(m -> new MetricDto(m.name(), m.score(), getAverageScoreByName(m.name(), peerScores), nullSafeComment(m.comment())))
                 .toList();
 
         // 추천 성분은 반드시 Ingredients 카드(18종) 안에서만
@@ -115,5 +115,10 @@ public record DiagnosisResponse(
 
     private static <T> List<T> nullSafe(List<T> list) {
         return list != null ? list : List.of();
+    }
+
+    // LLM이 comment를 누락/공백으로 주더라도 프론트가 그대로 뿌릴 수 있게 non-null 보장
+    private static String nullSafeComment(String comment) {
+        return (comment != null && !comment.isBlank()) ? comment : "이 지표는 특별한 이상 없이 무난한 상태예요.";
     }
 }
