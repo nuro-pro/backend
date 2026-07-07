@@ -96,7 +96,15 @@ public class Diagnosis extends BaseEntity {
         this.userId = userId;
         this.imageUrl = imageUrl;
         this.status = status;
-        this.shareId = NanoIdUtils.randomNanoId();
+
+        char[] ALPHABET =
+                "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+
+        this.shareId = NanoIdUtils.randomNanoId(
+                NanoIdUtils.DEFAULT_NUMBER_GENERATOR, // SecureRandom 기반 기본 생성기
+                ALPHABET,
+                10                                     // 원하는 길이
+        );
     }
 
     // 분석 시작 시점 생성
