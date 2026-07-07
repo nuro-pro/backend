@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Configuration;
 public class SolapiConfig {
     @Bean
     public DefaultMessageService messageService(
-            @Value("${solapi.api-key:dumy}") String apiKey,
-            @Value("${solapi.api-secret:dumy}") String apiSecret) {
+            @Value("${solapi.api-key}") String apiKey,
+            @Value("${solapi.api-secret}") String apiSecret) {
         return NurigoApp.INSTANCE.initialize(apiKey, apiSecret, "https://api.solapi.com");
     }
 }

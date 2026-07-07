@@ -34,11 +34,11 @@ spring:
           max-tokens: 2048
 
 solapi:
-  api-key: ${SOLAPI_API_KEY}
-  api-secret: ${SOLAPI_API_SECRET}
-  sender: ${SOLAPI_SENDER}          # 등록한 발신번호, 01012345678 형식
+  api-key: test-key
+  api-secret: test-secret
+  sender: "01000000000"
 app:
-  result-base-url: https://nuro-project.vercel.app/result
+  result-base-url: http://localhost:5173/result
 
 springdoc:
   swagger-ui:
