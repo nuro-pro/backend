@@ -5,6 +5,7 @@ import com.nuro.server.diagnosis.entity.Diagnosis;
 import com.nuro.server.ingredient.enums.Ingredients;
 import com.nuro.server.user.entity.User;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -16,6 +17,7 @@ import java.util.Objects;
 public record DiagnosisResponse(
         Long id,
         String shareId,
+        LocalDateTime createdAt,
 
         String userNickname,
         String userImage,
@@ -29,8 +31,7 @@ public record DiagnosisResponse(
         String summary,
         List<MetricDto> metrics,
         List<IngredientDto> ingredients,
-        List<RoutineDto> routine,
-        String disclaimer
+        List<RoutineDto> routine
 ) {
     public record MetricDto(String name, Integer score, Integer peerScore, String comment) {}
 
@@ -83,6 +84,7 @@ public record DiagnosisResponse(
         return new DiagnosisResponse(
                 diagnosis.getId(),
                 diagnosis.getShareId(),
+                diagnosis.getCreatedAt(),
 
                 user.getNickname(),
                 presignedImageUrl,
@@ -96,8 +98,7 @@ public record DiagnosisResponse(
                 result.summary(),
                 metricDtos,
                 ingredientDtos,
-                routineDtos,
-                result.disclaimer()
+                routineDtos
         );
     }
 
