@@ -66,7 +66,7 @@ public class SkinDiagnosisClient {
                   "skinAge": 피부나이 숫자만,
                   "totalScore": 종합점수 0~100 숫자만,
                   "totalDesc": "종합 점수 근거를 짚은 한 줄 요약",
-                  "summary": "피부 상태 전반에 대한 3~4문장 구체 분석",
+                  "summary": "피부 상태 전반에 대한 요약 문장, 한글 기준 공백 포함 60~80자 사이로",
                   "metrics": [
                     {"name": "수분", "score": 0~100 숫자만, "comment": "이 지표에 대한 1문장 분석"},
                     {"name": "주름", "score": 0~100 숫자만, "comment": "이 지표에 대한 1문장 분석"},
