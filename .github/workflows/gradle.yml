@@ -57,6 +57,10 @@ jobs:
           echo "AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}" >> .env
           echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
           echo "PROJECT_NAME=${{ secrets.PROJECT_NAME }}" >> .env
+          echo "SOLAPI_API_KEY=${{ secrets.SOLAPI_API_KEY }}" >> .env
+          echo "SOLAPI_API_SECRET=${{ secrets.SOLAPI_API_SECRET }}" >> .env
+          echo "SOLAPI_SENDER=${{ secrets.SOLAPI_SENDER }}" >> .env
+          echo "APP_RESULT_BASE_URL=${{ secrets.APP_RESULT_BASE_URL }}" >> .env
 
       # 7. docker-compose.yml + .env를 EC2로 전송
       - name: Copy files to EC2
