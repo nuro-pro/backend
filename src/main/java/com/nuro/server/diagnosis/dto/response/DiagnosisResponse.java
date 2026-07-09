@@ -49,7 +49,7 @@ public record DiagnosisResponse(
 
     public record RoutineDto(String name, String product, String desc) {}
 
-    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result, Map<String, Integer> peerScores, Integer peerTotalScore, User user, String presignedImageUrl) {
+    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result, PeerScore peerScores, Integer peerTotalScore, User user, String presignedImageUrl) {
 
         List<MetricDto> metricDtos = nullSafe(result.metrics()).stream()
                 .filter(Objects::nonNull)
@@ -102,14 +102,14 @@ public record DiagnosisResponse(
         );
     }
 
-    private static Integer getAverageScoreByName(String name, Map<String, Integer> peerScore){
+    private static Integer getAverageScoreByName(String name, PeerScore peerScore){
         return switch (name) {
-            case "수분" -> peerScore.get("수분");
-            case "주름" -> peerScore.get("주름");
-            case "색소" -> peerScore.get("색소");
-            case "모공" -> peerScore.get("모공");
-            case "민감" -> peerScore.get("민감");
-            case "유분" -> peerScore.get("유분");
+            case "수분" -> peerScore.moisture();
+            case "주름" -> peerScore.wrinkle();
+            case "색소" -> peerScore.pigment();
+            case "모공" -> peerScore.pore();
+            case "민감" -> peerScore.sensitive();
+            case "유분" -> peerScore.oil();
             default -> throw new IllegalStateException("잘못된 형식입니다.");
         };
     }
