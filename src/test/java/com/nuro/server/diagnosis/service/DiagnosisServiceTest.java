@@ -71,12 +71,12 @@ class DiagnosisServiceTest {
         return new SkinDiagnosisResult(
                 "건성", 24, 53, "전반적으로 수분 관리가 필요합니다.", "건조함이 두드러집니다.",
                 List.of(
-                        new SkinDiagnosisResult.MetricResult("수분", 62),
-                        new SkinDiagnosisResult.MetricResult("주름", 32),
-                        new SkinDiagnosisResult.MetricResult("색소", 94),
-                        new SkinDiagnosisResult.MetricResult("모공", 62),
-                        new SkinDiagnosisResult.MetricResult("민감", 62),
-                        new SkinDiagnosisResult.MetricResult("유분", 62)
+                        new SkinDiagnosisResult.MetricResult("수분", 62, "볼 부위 속건조가 보여 수분 보충이 필요해요."),
+                        new SkinDiagnosisResult.MetricResult("주름", 32, "눈가에 잔주름이 보이기 시작해요."),
+                        new SkinDiagnosisResult.MetricResult("색소", 94, "맑은 피부톤이 잘 유지되고 있어요."),
+                        new SkinDiagnosisResult.MetricResult("모공", 62, "T존 모공이 살짝 도드라져 보여요."),
+                        new SkinDiagnosisResult.MetricResult("민감", 62, "가끔 예민해질 수 있는 상태로 보여요."),
+                        new SkinDiagnosisResult.MetricResult("유분", 62, "유분이 다소 있는 편이에요.")
                 ),
                 List.of(
                         new SkinDiagnosisResult.IngredientResult("히알루론산"),

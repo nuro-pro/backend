@@ -6,6 +6,7 @@ import com.nuro.server.diagnosis.client.SkinDiagnosisClient;
 import com.nuro.server.diagnosis.client.SkinDiagnosisResult;
 import com.nuro.server.diagnosis.dto.request.DiagnosisRequest;
 import com.nuro.server.diagnosis.dto.response.DiagnosisResponse;
+import com.nuro.server.diagnosis.dto.response.PeerScore;
 import com.nuro.server.diagnosis.entity.Diagnosis;
 import com.nuro.server.diagnosis.entity.DiagnosisSurveyAnswer;
 import com.nuro.server.diagnosis.enums.DiagnosisStatus;
@@ -13,7 +14,6 @@ import com.nuro.server.diagnosis.exception.DiagnosisErrorCase;
 import com.nuro.server.diagnosis.repository.DiagnosisRepository;
 import com.nuro.server.diagnosis.repository.DiagnosisSurveyAnswerRepository;
 import com.nuro.server.diagnosis.storage.ImageStorage;
-import com.nuro.server.diagnosis.storage.S3PresignedUrlProvider;
 import com.nuro.server.diagnosis.util.ImageResizer;
 import com.nuro.server.global.exception.ApplicationException;
 import com.nuro.server.ingredient.entity.Ingredient;
@@ -58,12 +58,9 @@ public class DiagnosisService {
     private final ImageStorage imageStorage;
     private final ImageResizer imageResizer;
     private final ObjectMapper objectMapper;
-    private final UserService userService;
-    private final SurveyService surveyService;
     private final SurveyAnswerRepository surveyAnswerRepository;
     private final UserRepository userRepository;
     private final IngredientRepository ingredientRepository;
-    private final S3PresignedUrlProvider s3PresignedUrlProvider;
 
     /**
      * 사진 업로드 → 검증 → 리사이즈 → 비전 LLM 호출 → 저장된 결과 영속화
@@ -78,10 +75,13 @@ public class DiagnosisService {
 
         MimeType mimeType = resolveMimeType(image);
         byte[] resized = resizeForLlm(image, mimeType);
-        List<SurveyAnswer> answers = request.answers().stream()
-                .map(item -> surveyAnswerRepository.findById(item.answerId())
-                        .orElseThrow(()-> new ApplicationException(SurveyErrorCase.SURVEY_ANSWER_NOT_FOUND)))
+        List<Long> answerIds = request.answers().stream()
+                .map(DiagnosisRequest.SurveyAnswerItem::answerId)
                 .toList();
+        List<SurveyAnswer> answers = surveyAnswerRepository.findAllById(answerIds);
+        if (answers.size() != answerIds.size()) {
+            throw new ApplicationException(SurveyErrorCase.SURVEY_ANSWER_NOT_FOUND);
+        }
 
         //설문 결과
         String surveyText = answers.stream().map(
@@ -120,47 +120,34 @@ public class DiagnosisService {
 
         diagnosisSurveyAnswerRepository.saveAll(diagnosisAnswers);
 
-        Map<String, Integer> peerScores = getAverageScore(user.getAge());
+        PeerScore peerScores = getAverageScore(user.getAge());
 
-        int peerTotalScore =
-                (peerScores.get("수분")
-                        + peerScores.get("주름")
-                        + peerScores.get("색소")
-                        + peerScores.get("모공")
-                        + peerScores.get("민감")
-                        + peerScores.get("유분")) / 6;
-        String presignedUrl = s3PresignedUrlProvider.generateGetUrl(diagnosis.getImageUrl());
+        int peerTotalScore =peerScores.total();
+        String presignedUrl = imageStorage.generateGetUrl(diagnosis.getImageUrl());
         return DiagnosisResponse.from(diagnosis, aiResult, peerScores, peerTotalScore, user, presignedUrl);
     }
 
     // 진단 ID로 저장된 결과를 조회
     public DiagnosisResponse getDiagnosis(String sharedId) {
         Diagnosis diagnosis = diagnosisRepository.findByShareId(sharedId)
-                .filter(d -> !d.isDeleted())
                 .orElseThrow(() -> new ApplicationException(DiagnosisErrorCase.DIAGNOSIS_NOT_FOUND));
 
         SkinDiagnosisResult result = fromJson(diagnosis.getRawResult());
-        User user = userRepository.findById(diagnosis.getId())
+        User user = userRepository.findById(diagnosis.getUserId())
                 .orElseThrow(()-> new ApplicationException(UserErrorCase.USER_NOT_FOUND));
 
-        Map<String, Integer> peerScores = getAverageScore(user.getAge());
+        PeerScore peerScores = getAverageScore(user.getAge());
 
-        int peerTotalScore =
-                (peerScores.get("수분")
-                        + peerScores.get("주름")
-                        + peerScores.get("색소")
-                        + peerScores.get("모공")
-                        + peerScores.get("민감")
-                        + peerScores.get("유분")) / 6;
+        int peerTotalScore = peerScores.total();
 
-        String presignedUrl = s3PresignedUrlProvider.generateGetUrl(diagnosis.getImageUrl());
+        String presignedUrl = imageStorage.generateGetUrl(diagnosis.getImageUrl());
         return DiagnosisResponse.from(diagnosis, result, peerScores, peerTotalScore, user, presignedUrl);
     }
 
     // 평균값 계산
-    private Map<String, Integer> getAverageScore(Integer userAge){
-        Integer startAge = userAge-5;
-        Integer endAge = userAge+5;
+    private PeerScore getAverageScore(Integer userAge){
+        int startAge = Math.max(0, userAge - 5);
+        int endAge = userAge+5;
         List<User> users= userRepository.findByAgeBetween(startAge, endAge);
 
         if (users.isEmpty()) {
@@ -169,47 +156,29 @@ public class DiagnosisService {
 
         List<Long> userIdList = users.stream().map(User::getId).toList();
         List<Diagnosis> diagnoses = diagnosisRepository.findByUserIdInAndStatus(userIdList, DiagnosisStatus.COMPLETED);
+        if (diagnoses.isEmpty()) {
+            throw new ApplicationException(DiagnosisErrorCase.DIAGNOSIS_NOT_FOUND);
+        }
 
-        int avgMoisture = (int) Math.round(diagnoses.stream()
-                .mapToInt(Diagnosis::getMoistureScore)
-                .average()
-                .orElse(0.0));
+        long moisture = 0, wrinkle = 0, pigment = 0, pore = 0, sensitive = 0, oil = 0;
+        for (Diagnosis d : diagnoses) {
+            moisture  += d.getMoistureScore();
+            wrinkle   += d.getWrinkleScore();
+            pigment   += d.getPigmentScore();
+            pore      += d.getPoreScore();
+            sensitive += d.getSensitiveScore();
+            oil       += d.getOilScore();
+        }
+        int n = diagnoses.size();
 
-        int avgWrinkle = (int) Math.round(diagnoses.stream()
-                .mapToInt(Diagnosis::getWrinkleScore)
-                .average()
-                .orElse(0.0));
-
-        int avgPigment = (int) Math.round(diagnoses.stream()
-                .mapToInt(Diagnosis::getPigmentScore)
-                .average()
-                .orElse(0.0));
-
-        int avgPore = (int) Math.round(diagnoses.stream()
-                .mapToInt(Diagnosis::getPoreScore)
-                .average()
-                .orElse(0.0));
-
-        int avgSensitive = (int) Math.round(diagnoses.stream()
-                .mapToInt(Diagnosis::getSensitiveScore)
-                .average()
-                .orElse(0.0));
-
-        int avgOil = (int) Math.round(diagnoses.stream()
-                .mapToInt(Diagnosis::getOilScore)
-                .average()
-                .orElse(0.0));
-
-        return new HashMap<>() {
-            {
-                put("수분", avgMoisture);
-                put("주름", avgWrinkle);
-                put("색소", avgPigment);
-                put("모공", avgPore);
-                put("민감", avgSensitive);
-                put("유분", avgOil);
-            }
-        };
+        return new PeerScore(
+                Math.round((float) moisture / n),
+                Math.round((float) wrinkle / n),
+                Math.round((float) pigment / n),
+                Math.round((float) pore / n),
+                Math.round((float) sensitive / n),
+                Math.round((float) oil / n)
+        );
     }
 
     private void validateImage(MultipartFile image) {

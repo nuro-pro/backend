@@ -5,6 +5,7 @@ import com.nuro.server.diagnosis.entity.Diagnosis;
 import com.nuro.server.ingredient.enums.Ingredients;
 import com.nuro.server.user.entity.User;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -16,6 +17,7 @@ import java.util.Objects;
 public record DiagnosisResponse(
         Long id,
         String shareId,
+        LocalDateTime createdAt,
 
         String userNickname,
         String userImage,
@@ -29,10 +31,9 @@ public record DiagnosisResponse(
         String summary,
         List<MetricDto> metrics,
         List<IngredientDto> ingredients,
-        List<RoutineDto> routine,
-        String disclaimer
+        List<RoutineDto> routine
 ) {
-    public record MetricDto(String name, Integer score, Integer peerScore) {}
+    public record MetricDto(String name, Integer score, Integer peerScore, String comment) {}
 
     public record IngredientDto(
             String korName,
@@ -48,11 +49,11 @@ public record DiagnosisResponse(
 
     public record RoutineDto(String name, String product, String desc) {}
 
-    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result, Map<String, Integer> peerScores, Integer peerTotalScore, User user, String presignedImageUrl) {
+    public static DiagnosisResponse from(Diagnosis diagnosis, SkinDiagnosisResult result, PeerScore peerScores, Integer peerTotalScore, User user, String presignedImageUrl) {
 
         List<MetricDto> metricDtos = nullSafe(result.metrics()).stream()
                 .filter(Objects::nonNull)
-                .map(m -> new MetricDto(m.name(), m.score(), getAverageScoreByName(m.name(), peerScores)))
+                .map(m -> new MetricDto(m.name(), m.score(), getAverageScoreByName(m.name(), peerScores), nullSafeComment(m.comment())))
                 .toList();
 
         // 추천 성분은 반드시 Ingredients 카드(18종) 안에서만
@@ -83,6 +84,7 @@ public record DiagnosisResponse(
         return new DiagnosisResponse(
                 diagnosis.getId(),
                 diagnosis.getShareId(),
+                diagnosis.getCreatedAt(),
 
                 user.getNickname(),
                 presignedImageUrl,
@@ -96,24 +98,28 @@ public record DiagnosisResponse(
                 result.summary(),
                 metricDtos,
                 ingredientDtos,
-                routineDtos,
-                result.disclaimer()
+                routineDtos
         );
     }
 
-    private static Integer getAverageScoreByName(String name, Map<String, Integer> peerScore){
+    private static Integer getAverageScoreByName(String name, PeerScore peerScore){
         return switch (name) {
-            case "수분" -> peerScore.get("수분");
-            case "주름" -> peerScore.get("주름");
-            case "색소" -> peerScore.get("색소");
-            case "모공" -> peerScore.get("모공");
-            case "민감" -> peerScore.get("민감");
-            case "유분" -> peerScore.get("유분");
+            case "수분" -> peerScore.moisture();
+            case "주름" -> peerScore.wrinkle();
+            case "색소" -> peerScore.pigment();
+            case "모공" -> peerScore.pore();
+            case "민감" -> peerScore.sensitive();
+            case "유분" -> peerScore.oil();
             default -> throw new IllegalStateException("잘못된 형식입니다.");
         };
     }
 
     private static <T> List<T> nullSafe(List<T> list) {
         return list != null ? list : List.of();
+    }
+
+    // LLM이 comment를 누락/공백으로 주더라도 프론트가 그대로 뿌릴 수 있게 non-null 보장
+    private static String nullSafeComment(String comment) {
+        return (comment != null && !comment.isBlank()) ? comment : "이 지표는 특별한 이상 없이 무난한 상태예요.";
     }
 }
